@@ -12,15 +12,16 @@ class EIAClient:
     def get_data(self, endpoint, params=None):
         params = params or {}
         params["api_key"] = self.api_key
+
         response = requests.get(f"{self.BASE_URL}{endpoint}", params=params)
         response.raise_for_status()
         return response.json()
 
-    def get_electricity_data(self, api_key, api_path, data="value", facets=None, start=None, end=None, length=None,
+    def get_electricity_data(self, api_path, data="value", facets=None, start=None, end=None, length=None,
                              offset=None, frequency=None):
         """"
-        Dedicated method for route: electricity
-        and hourly demand by subregion: rto
+        route: electricity
+        rto: real-time grid monitor
         """
 
         if facets is None:
@@ -71,10 +72,10 @@ class EIAClient:
         else:
             fr = "&frequency=" + str(frequency)
 
-        url = "https://api.eia.gov/v2/" + api_path + "?data[]=value" + fc + s + e + l + o + fr
+        endpoint = "electricity/" + api_path + "?data[]=value" + fc + s + e + l + o + fr
 
 
-        endpoint = f"electricity/rto/id/{series_id}"
+        #endpoint = f"electricity/rto/id/{series_id}"
 
         # Call get_data
         data = self.get_data(endpoint)  # as json

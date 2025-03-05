@@ -9,7 +9,11 @@ if __name__ == "__main__":
     api_key = os.getenv("EIA_API_KEY")
     client = EIAClient(api_key)
 
+    api_path = "rto/region-sub-ba-data/data/"
+
     freq = "hourly"
+
+    # Categories to slice data
     facets = {
         "parent": "CISO",
         "subba": "SDGE"
@@ -24,10 +28,8 @@ if __name__ == "__main__":
 
     dt_start = datetime.datetime(2024, 1, 1, 1)
     dt_end = datetime.datetime(2024, 1, 31, 23)
-    series_id = "ELECTRICITY_SERIES_ID_HERE"
 
-    df = client.get_electricity_data(api_key=api_key,
-                                     api_path=api_path,
+    df = client.get_electricity_data(api_path=api_path,
                                      frequency=freq,
                                      facets=facets,
                                      start=dt_start,
