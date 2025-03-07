@@ -1,5 +1,6 @@
 import datetime
 import requests
+from typing import Optional, Union
 import polars as pl
 
 
@@ -9,7 +10,7 @@ class EIAClient:
     def __init__(self, api_key):
         self.api_key = api_key
 
-    def get_data(self, endpoint, params=None):
+    def get_data(self, endpoint: str, params=None):
         params = params or {}
         params["api_key"] = self.api_key
 
@@ -17,65 +18,69 @@ class EIAClient:
         response.raise_for_status()
         return response.json()
 
-    def get_electricity_data(self, api_path, data="value", facets=None, start=None, end=None, length=None,
-                             offset=None, frequency=None):
+    def get_electricity_data(self, 
+                             api_path: str, 
+                             facets: Optional[dict], 
+                             start: Optional[Union[datetime.date, datetime.datetime]], 
+                             end=Optional[Union[datetime.date, datetime.datetime]], 
+                             length=Optional[str],
+                             offset=Optional[str], 
+                             frequency=Optional[str]) -> pl.DataFrame:
         """"
         route: electricity
         rto: real-time grid monitor
         """
+        
+        # Check if facets is not a string, list, or None
+        if facets is not None and not isinstance(facets, dict):
+            raise TypeError("facets must be a dictionary or None")
 
         if facets is None:
-            fc = ""
+            facets = ""
         else:
-            fc = ""
-        for i in facets.keys():
-            if type(facets[i]) is list:
-                for n in facets[i]:
-                    fc = fc + "&facets[" + i + "][]=" + n
-            elif type(facets[i]) is str:
-                fc = fc + "&facets[" + i + "][]=" + facets[i]
+            for i in facets.keys():
+                if type(facets[i]) is list:
+                    for n in facets[i]:
+                        facets = facets + "&facets[" + i + "][]=" + n
+                elif type(facets[i]) is str:
+                    facets = facets + "&facets[" + i + "][]=" + facets[i]
+
+        if start is not None and not isinstance(start,(datetime.date, datetime.datetime)):
+            raise TypeError("start must be a date, datetime, or None")
 
         if start is None:
-            s = ""
+            start = ""
+        elif type(start) is datetime.date:
+            start = "&start=" + start.strftime("%Y-%m-%d")
         else:
-            if type(start) is datetime.date:
-                s = "&start=" + start.strftime("%Y-%m-%d")
-            elif type(start) is datetime.datetime:
-                s = "&start=" + start.strftime("%Y-%m-%dT%H")
-            else:
-                print("Error: The start argument is not a valid date or time object")
-                return
+            start = "&start=" + start.strftime("%Y-%m-%dT%H")           
+
+        if end is not None and not isinstance(end,(datetime.date, datetime.datetime)):
+            raise TypeError("start must be a date, datetime, or None")
 
         if end is None:
-            e = ""
+            end = ""
+        elif type(end) is datetime.date:
+            end = "&start=" + end.strftime("%Y-%m-%d")
         else:
-            if type(end) is datetime.date:
-                e = "&end=" + end.strftime("%Y-%m-%d")
-            elif type(end) is datetime.datetime:
-                e = "&end=" + end.strftime("%Y-%m-%dT%H")
-            else:
-                print("Error: The end argument is not a valid date or time object")
-                return
+            end = "&start=" + end.strftime("%Y-%m-%dT%H")
 
         if length is None:
-            l = ""
+            length = ""
         else:
-            l = "&length=" + str(length)
+            length = "&length=" + str(length)
 
         if offset is None:
-            o = ""
+            offset = ""
         else:
-            o = "&offset=" + str(offset)
+            offset = "&offset=" + str(offset)
 
         if frequency is None:
-            fr = ""
+            frequency = ""
         else:
-            fr = "&frequency=" + str(frequency)
+            frequency = "&frequency=" + str(frequency)
 
-        endpoint = "electricity/" + api_path + "?data[]=value" + fc + s + e + l + o + fr
-
-
-        #endpoint = f"electricity/rto/id/{series_id}"
+        endpoint = "electricity/" + api_path + "?data[]=value" + facets + start + end + length + offset + frequency        
 
         # Call get_data
         data = self.get_data(endpoint)  # as json
