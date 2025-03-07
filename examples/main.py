@@ -27,7 +27,7 @@ if __name__ == "__main__":
     """
 
     dt_start = datetime.datetime(2024, 1, 1, 1)
-    dt_end = datetime.datetime(2024, 1, 31, 23)
+    dt_end = datetime.datetime(2024, 1, 25, 23)
 
     df = client.get_electricity_data(api_path=api_path,
                                      frequency=freq,

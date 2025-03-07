@@ -14,18 +14,19 @@ class EIAClient:
         params = params or {}
         params["api_key"] = self.api_key
 
-        response = requests.get(f"{self.BASE_URL}{endpoint}", params=params)
+        full_url = f"{self.BASE_URL}{endpoint}"
+        response = requests.get(url=full_url, params=params)
         response.raise_for_status()
         return response.json()
 
     def get_electricity_data(self, 
                              api_path: str, 
-                             facets: Optional[dict], 
-                             start: Optional[Union[datetime.date, datetime.datetime]], 
-                             end=Optional[Union[datetime.date, datetime.datetime]], 
-                             length=Optional[str],
-                             offset=Optional[str], 
-                             frequency=Optional[str]) -> pl.DataFrame:
+                             facets: Optional[dict] = None,
+                             start: Optional[Union[datetime.date, datetime.datetime]] = None,
+                             end: Optional[Union[datetime.date, datetime.datetime]] = None,
+                             length: Optional[str] = None,
+                             offset: Optional[str] = None,
+                             frequency: Optional[str] = None) -> pl.DataFrame:
         """"
         route: electricity
         rto: real-time grid monitor
@@ -35,17 +36,20 @@ class EIAClient:
         if facets is not None and not isinstance(facets, dict):
             raise TypeError("facets must be a dictionary or None")
 
+        # Create string var for facet
         if facets is None:
-            facets = ""
+            facet_str = ""
         else:
-            for i in facets.keys():
-                if type(facets[i]) is list:
-                    for n in facets[i]:
-                        facets = facets + "&facets[" + i + "][]=" + n
-                elif type(facets[i]) is str:
-                    facets = facets + "&facets[" + i + "][]=" + facets[i]
+            facet_str = ""
 
-        if start is not None and not isinstance(start,(datetime.date, datetime.datetime)):
+        for i in facets.keys():
+            if type(facets[i]) is list:
+                for n in facets[i]:
+                    facet_str = facet_str + "&facets[" + i + "][]=" + n
+            elif type(facets[i]) is str:
+                facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
+
+        if start is not None and not isinstance(start, (datetime.date, datetime.datetime)):
             raise TypeError("start must be a date, datetime, or None")
 
         if start is None:
@@ -55,7 +59,7 @@ class EIAClient:
         else:
             start = "&start=" + start.strftime("%Y-%m-%dT%H")           
 
-        if end is not None and not isinstance(end,(datetime.date, datetime.datetime)):
+        if end is not None and not isinstance(end, (datetime.date, datetime.datetime)):
             raise TypeError("start must be a date, datetime, or None")
 
         if end is None:
@@ -80,7 +84,7 @@ class EIAClient:
         else:
             frequency = "&frequency=" + str(frequency)
 
-        endpoint = "electricity/" + api_path + "?data[]=value" + facets + start + end + length + offset + frequency        
+        endpoint = "electricity/" + api_path + "?data[]=value" + facet_str + start + end + length + offset + frequency
 
         # Call get_data
         data = self.get_data(endpoint)  # as json
