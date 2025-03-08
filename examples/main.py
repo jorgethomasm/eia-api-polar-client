@@ -21,9 +21,7 @@ if __name__ == "__main__":
 
     """
     https://api.eia.gov/v2/electricity/rto/region-sub-ba-data/data/?frequency=hourly&data[0]=value&facets[parent][]=CISO&facets[subba][]=SDGE&start=2025-01-01T00&end=2025-02-28T00&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000
-    
-    
-    https://www.eia.gov/opendata/browser/electricity/rto/region-sub-ba-data?frequency=hourly&data=value;&facets=parent;subba;&parent=CISO;&subba=SDGE;&start=2025-01-01T00&end=2025-02-28T00&sortColumn=period;&sortDirection=desc;
+        
     """
 
     dt_start = datetime.datetime(2024, 1, 1, 1)

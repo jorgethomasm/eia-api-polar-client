@@ -10,6 +10,25 @@ class EIAClient:
     def __init__(self, api_key):
         self.api_key = api_key
 
+    # Helper methods:
+    def day_offset(start, end, offset):
+        current = [start]
+        while max(current) < end:
+            if max(current) + datetime.timedelta(days=offset) < end:
+                current.append(max(current) + datetime.timedelta(days=offset))
+        else:
+            current.append(end)
+        return current
+
+    def hour_offset(start, end, offset):
+        current = [start]
+        while max(current) < end:
+            if max(current) + datetime.timedelta(hours=offset) < end:
+                current.append(max(current) + datetime.timedelta(hours=offset))
+            else:
+                current.append(end)
+        return current
+
     def get_data(self, endpoint: str, params=None):
         params = params or {}
         params["api_key"] = self.api_key
@@ -60,7 +79,7 @@ class EIAClient:
             start = "&start=" + start.strftime("%Y-%m-%dT%H")           
 
         if end is not None and not isinstance(end, (datetime.date, datetime.datetime)):
-            raise TypeError("start must be a date, datetime, or None")
+            raise TypeError("end must be a date, datetime, or None")
 
         if end is None:
             end = ""
@@ -92,4 +111,80 @@ class EIAClient:
         # Convert JSON to Polars DataFrame
         df = pl.DataFrame(data["response"]["data"])
 
+        # Reformating the output with chaining
+        df = df.with_columns(
+            [
+                pl.col("value").cast(pl.Float64),
+                pl.col("period") + ":00"
+            ]
+        )
+        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
+
         return df
+
+    # def eia_backfill(start, end, offset, api_key, api_path, facets):
+    #         class response:
+    #             def __init__(output, data, parameters):
+    #                 output.data = data
+    #                 output.parameters = parameters
+    #
+    #         if type(api_key) is not str:
+    #             print("Error: The api_key argument is not a valid string")
+    #             return
+    #         elif len(api_key) != 40:
+    #             print("Error: The length of the api_key is not valid, must be 40 characters")
+    #             return
+    #
+    #         if api_path[-1] != "/":
+    #             api_path = api_path + "/"
+    #
+    #         if type(start) is datetime.date:
+    #             s = "&start=" + start.strftime("%Y-%m-%d")
+    #         elif type(start) is datetime.datetime:
+    #             s = "&start=" + start.strftime("%Y-%m-%dT%H")
+    #         else:
+    #             print("Error: The start argument is not a valid date or time object")
+    #             return
+    #
+    #         if type(end) is datetime.date:
+    #             e = "&end=" + end.strftime("%Y-%m-%d")
+    #         elif type(end) is datetime.datetime:
+    #             e = "&end=" + end.strftime("%Y-%m-%dT%H")
+    #         else:
+    #             print("Error: The end argument is not a valid date or time object")
+    #             return
+    #
+    #         if type(start) is datetime.date:
+    #             time_vec_seq = day_offset(start=start, end=end, offset=offset)
+    #         elif type(start) is datetime.datetime:
+    #             time_vec_seq = hour_offset(start=start, end=end, offset=offset)
+    #
+    #         for i in range(len(time_vec_seq[:-1])):
+    #             start = time_vec_seq[i]
+    #             if i < len(time_vec_seq[:-1]) - 1:
+    #                 end = time_vec_seq[i + 1] - datetime.timedelta(hours=1)
+    #             elif i == len(time_vec_seq[:-1]) - 1:
+    #                 end = time_vec_seq[i + 1]
+    #             temp = eia_get(api_key=api_key,
+    #                            api_path=api_path,
+    #                            facets=facets,
+    #                            start=start,
+    #                            data="value",
+    #                            end=end)
+    #             if i == 0:
+    #                 df = temp.data
+    #             else:
+    #                 df = df._append(temp.data)
+    #
+    #         parameters = {
+    #             "api_path": api_path,
+    #             "data": "value",
+    #             "facets": facets,
+    #             "start": start,
+    #             "end": end,
+    #             "length": None,
+    #             "offset": offset,
+    #             "frequency": None
+    #         }
+    #         output = response(data=df, parameters=parameters)
+    #         return output
