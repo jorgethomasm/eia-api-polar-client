@@ -10,8 +10,8 @@ class EIAClient:
     def __init__(self, api_key):
         self.api_key = api_key
 
-    # Helper methods:
-    def day_offset(start, end, offset):
+    # Helper (private) methods:
+    def __day_offset(start, end, offset) -> list:
         current = [start]
         while max(current) < end:
             if max(current) + datetime.timedelta(days=offset) < end:
@@ -20,7 +20,7 @@ class EIAClient:
             current.append(end)
         return current
 
-    def hour_offset(start, end, offset):
+    def __hour_offset(start, end, offset) -> list:
         current = [start]
         while max(current) < end:
             if max(current) + datetime.timedelta(hours=offset) < end:
@@ -29,7 +29,7 @@ class EIAClient:
                 current.append(end)
         return current
 
-    def get_data(self, endpoint: str, params=None):
+    def __get_data(self, endpoint: str, params=None):
         params = params or {}
         params["api_key"] = self.api_key
 
@@ -55,18 +55,17 @@ class EIAClient:
         if facets is not None and not isinstance(facets, dict):
             raise TypeError("facets must be a dictionary or None")
 
-        # Create string var for facet
+        # Create string var for facet or extract info from the list
         if facets is None:
             facet_str = ""
         else:
             facet_str = ""
-
-        for i in facets.keys():
-            if type(facets[i]) is list:
-                for n in facets[i]:
-                    facet_str = facet_str + "&facets[" + i + "][]=" + n
-            elif type(facets[i]) is str:
-                facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
+            for i in facets.keys():
+                if type(facets[i]) is list:
+                    for n in facets[i]:
+                        facet_str = facet_str + "&facets[" + i + "][]=" + n
+                elif type(facets[i]) is str:
+                    facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
 
         if start is not None and not isinstance(start, (datetime.date, datetime.datetime)):
             raise TypeError("start must be a date, datetime, or None")
@@ -106,12 +105,12 @@ class EIAClient:
         endpoint = "electricity/" + api_path + "?data[]=value" + facet_str + start + end + length + offset + frequency
 
         # Call get_data
-        data = self.get_data(endpoint)  # as json
+        data = self.__get_data(endpoint)  # as json
 
         # Convert JSON to Polars DataFrame
         df = pl.DataFrame(data["response"]["data"])
 
-        # Reformating the output with chaining
+        # Reformating the output
         df = df.with_columns(
             [
                 pl.col("value").cast(pl.Float64),
