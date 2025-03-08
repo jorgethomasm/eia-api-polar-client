@@ -60,18 +60,46 @@ class EIAClient:
         response.raise_for_status()
         return response.json()
 
+    def __get_electricity_data_chunk(self, endpoint: str) -> pl.DataFrame:
+
+        # Call private method __get_data
+        data = self.__get_data(endpoint)  # as json
+        # Convert JSON to Polars DataFrame
+        df = pl.DataFrame(data["response"]["data"])
+        # Reformating the output
+        df = df.with_columns(
+            [
+                pl.col("value").cast(pl.Float64),
+                pl.col("period") + ":00"
+            ]
+        )
+
+        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
+
+        # TODO Sort df
+
+        return df
+
     def get_electricity_data(self,
                              api_path: str,
                              facets: Optional[dict] = None,
                              start: Optional[Union[datetime.date, datetime.datetime]] = None,
                              end: Optional[Union[datetime.date, datetime.datetime]] = None,
                              length: Optional[str] = None,
-                             offset: Optional[str] = None,
+                             offset: Optional[int] = None,
                              frequency: Optional[str] = None) -> pl.DataFrame:
-        """"
-        route: electricity
-        rto: real-time grid monitor
+
+        # Build URL endpoint:
         """
+                Vocabulary
+                route: electricity
+                rto: real-time grid monitor
+
+                Parameters
+                frequency: "hourly" or "daily".
+                offset: number of observations to split requests (Recommended Max. 2000)
+                if offset parameters is None, the back-fill operation will not be performed!
+                """
 
         # Check if facets is not a string, list, or None
         if facets is not None and not isinstance(facets, dict):
@@ -79,7 +107,6 @@ class EIAClient:
 
         # Create string var for facet or extract info from the list
         facet_str = ""
-
         if facets is not None:
             for i in facets.keys():
                 if type(facets[i]) is list:
@@ -92,22 +119,8 @@ class EIAClient:
         if start is not None and not isinstance(start, (datetime.date, datetime.datetime)):
             raise TypeError("start must be a date, datetime, or None")
 
-        if start is None:
-            start = ""
-        elif type(start) is datetime.date:
-            start = "&start=" + start.strftime("%Y-%m-%d")
-        else:
-            start = "&start=" + start.strftime("%Y-%m-%dT%H")
-
         if end is not None and not isinstance(end, (datetime.date, datetime.datetime)):
             raise TypeError("end must be a date, datetime, or None")
-
-        if end is None:
-            end = ""
-        elif type(end) is datetime.date:
-            end = "&start=" + end.strftime("%Y-%m-%d")
-        else:
-            end = "&start=" + end.strftime("%Y-%m-%dT%H")
 
         if length is None:
             length = ""
@@ -115,73 +128,75 @@ class EIAClient:
             length = "&length=" + str(length)
 
         if offset is None:
-            offset = ""
+            offset_str = ""
         else:
-            offset = "&offset=" + str(offset)
+            offset_str = "&offset=" + str(offset)
 
         if frequency is None:
             frequency = ""
         else:
             frequency = "&frequency=" + str(frequency)
 
-        endpoint = "electricity/" + api_path + "?data[]=value" + facet_str + start + end + length + offset + frequency
+        if offset is not None:
+            # Do back-filling
+            time_splits = []
+            if type(start) is datetime.date:
+                time_splits = day_offset(start=start, end=end, offset=offset)
+            elif type(start) is datetime.datetime:
+                time_splits = hour_offset(start=start, end=end, offset=offset)
 
-        # Call private method __get_data
-        data = self.__get_data(endpoint)  # as json
+            i_splits = len(time_splits[:-1])
+            for i in range(0, i_splits):
+                start = time_splits[i]
+                if i < i_splits - 1:
+                    end = time_splits[i + 1] - datetime.timedelta(hours=1)
+                elif i == i_splits - 1:
+                    end = time_splits[i + 1]
 
-        # Convert JSON to Polars DataFrame
-        df = pl.DataFrame(data["response"]["data"])
+                # Start and End chunks
+                if start is None:
+                    start_str = ""
+                elif type(start) is datetime.date:
+                    start_str = "&start=" + start.strftime("%Y-%m-%d")
+                else:
+                    start_str = "&start=" + start.strftime("%Y-%m-%dT%H")
 
-        # Reformating the output
-        df = df.with_columns(
-            [
-                pl.col("value").cast(pl.Float64),
-                pl.col("period") + ":00"
-            ]
-        )
-        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
+                if end is None:
+                    end_str = ""
+                elif type(end) is datetime.date:
+                    end_str = "&start=" + end.strftime("%Y-%m-%d")
+                else:
+                    end_str = "&start=" + end.strftime("%Y-%m-%dT%H")
+
+                # Write endpoint urls
+                endpoint = ("electricity/" + api_path + "?data[]=value" + facet_str + start_str + end_str + length +
+                            offset_str + frequency)
+
+                df_temp = self.__get_electricity_data_chunk(endpoint)
+
+                if i == 0:
+                    df = df_temp
+                else:
+                    df = df_temp.vstack(df_temp)
+        else:
+            # Do not do back-filling
+            if start is None:
+                start_str = ""
+            elif type(start) is datetime.date:
+                start_str = "&start=" + start.strftime("%Y-%m-%d")
+            else:
+                start_str = "&start=" + start.strftime("%Y-%m-%dT%H")
+
+            if end is None:
+                end_str = ""
+            elif type(end) is datetime.date:
+                end_str = "&start=" + end.strftime("%Y-%m-%d")
+            else:
+                end_str = "&start=" + end.strftime("%Y-%m-%dT%H")
+
+                # Write endpoint url
+            endpoint = ("electricity/" + api_path + "?data[]=value" + facet_str + start_str + end_str + length +
+                        offset_str + frequency)
+            df = self.__get_electricity_data_chunk(endpoint)
 
         return df
-
-    def eia_back_fill(self,
-                     start,
-                     end,
-                     offset,
-                     api_key,
-                     api_path,
-                     facets):
-
-        if type(start) is datetime.date:
-            time_vec_seq = self.__day_offset(start=start, end=end, offset=offset)
-        elif type(start) is datetime.datetime:
-            time_vec_seq = self.__hour_offset(start=start, end=end, offset=offset)
-
-        for i in range(len(time_vec_seq[:-1])):
-            start = time_vec_seq[i]
-            if i < len(time_vec_seq[:-1]) - 1:
-                end = time_vec_seq[i + 1] - datetime.timedelta(hours=1)
-            elif i == len(time_vec_seq[:-1]) - 1:
-                end = time_vec_seq[i + 1]
-            temp = eia_get(api_key=api_key,
-                           api_path=api_path,
-                           facets=facets,
-                           start=start,
-                           data="value",
-                           end=end)
-            if i == 0:
-                df = temp.data
-            else:
-                df = df.append(temp.data)
-
-        parameters = {
-            "api_path": api_path,
-            "data": "value",
-            "facets": facets,
-            "start": start,
-            "end": end,
-            "length": None,
-            "offset": offset,
-            "frequency": None
-        }
-        output = response(data=df, parameters=parameters)
-        return output
