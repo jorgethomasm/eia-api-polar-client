@@ -73,11 +73,8 @@ class EIAClient:
                 pl.col("period") + ":00"
             ]
         )
-
         df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
-
-        # TODO Sort df
-
+        df = df.sort("period")
         return df
 
     def get_electricity_data(self,
@@ -137,6 +134,8 @@ class EIAClient:
         else:
             frequency = "&frequency=" + str(frequency)
 
+        df = pl.DataFrame
+
         if offset is not None:
             # Do back-filling
             time_splits = []
@@ -145,13 +144,14 @@ class EIAClient:
             elif type(start) is datetime.datetime:
                 time_splits = hour_offset(start=start, end=end, offset=offset)
 
-            i_splits = len(time_splits[:-1])
+            # Moving window (chunks)
+            i_splits = len(time_splits)-1
             for i in range(0, i_splits):
                 start = time_splits[i]
-                if i < i_splits - 1:
-                    end = time_splits[i + 1] - datetime.timedelta(hours=1)
+                if i < i_splits-1:
+                    end = time_splits[i+1] - datetime.timedelta(hours=1)
                 elif i == i_splits - 1:
-                    end = time_splits[i + 1]
+                    end = time_splits[i+1]
 
                 # Start and End chunks
                 if start is None:
@@ -164,9 +164,9 @@ class EIAClient:
                 if end is None:
                     end_str = ""
                 elif type(end) is datetime.date:
-                    end_str = "&start=" + end.strftime("%Y-%m-%d")
+                    end_str = "&end=" + end.strftime("%Y-%m-%d")
                 else:
-                    end_str = "&start=" + end.strftime("%Y-%m-%dT%H")
+                    end_str = "&end=" + end.strftime("%Y-%m-%dT%H")
 
                 # Write endpoint urls
                 endpoint = ("electricity/" + api_path + "?data[]=value" + facet_str + start_str + end_str + length +
@@ -175,9 +175,10 @@ class EIAClient:
                 df_temp = self.__get_electricity_data_chunk(endpoint)
 
                 if i == 0:
-                    df = df_temp
+                    df = df_temp  # First fill
                 else:
-                    df = df_temp.vstack(df_temp)
+                    # Back-fill the rest
+                    df = df.vstack(df_temp)
         else:
             # Do not do back-filling
             if start is None:
@@ -190,13 +191,15 @@ class EIAClient:
             if end is None:
                 end_str = ""
             elif type(end) is datetime.date:
-                end_str = "&start=" + end.strftime("%Y-%m-%d")
+                end_str = "&end=" + end.strftime("%Y-%m-%d")
             else:
-                end_str = "&start=" + end.strftime("%Y-%m-%dT%H")
+                end_str = "&end=" + end.strftime("%Y-%m-%dT%H")
 
-                # Write endpoint url
+            # Write endpoint url
             endpoint = ("electricity/" + api_path + "?data[]=value" + facet_str + start_str + end_str + length +
                         offset_str + frequency)
             df = self.__get_electricity_data_chunk(endpoint)
+
+        df = df.sort("period")
 
         return df
