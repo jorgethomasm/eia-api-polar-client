@@ -9,7 +9,7 @@ def day_offset(start: datetime.date, end: datetime.date, offset: int) -> list:
     """
     Generate a list of date type elements with the given offset
     representing days. This helper function is for the back-fill operation,
-    given that the maximum request size of the API is of approximate 2500 data points.
+    given that the maximum request size of the API is of approximate 2500 observations.
     """
     current = [start]
     last_date = start
@@ -28,7 +28,7 @@ def hour_offset(start: datetime.datetime, end: datetime.datetime, offset: int) -
     """
     Generate a list of datetime type elements with the given offset
     representing hours. This helper function is for the back-fill operation,
-    given that the maximum request size of the API is of approximate 2500 data points.
+    given that the maximum request size of the API is of approximate 2500 observations.
     """
     current = [start]
     last_datetime = start
@@ -60,7 +60,7 @@ class EIAClient:
         response.raise_for_status()
         return response.json()
 
-    def __get_electricity_data_chunk(self, endpoint: str) -> pl.DataFrame:
+    def __get_data_chunk(self, endpoint: str) -> pl.DataFrame:
 
         # Call private method __get_data
         data = self.__get_data(endpoint)  # as json
@@ -71,10 +71,11 @@ class EIAClient:
             [
                 pl.col("value").cast(pl.Float64),
                 pl.col("period") + ":00"
-            ]
-        )
+                ]
+            )
+
         df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
-        df = df.sort("period")
+
         return df
 
     def get_electricity_data(self,
@@ -198,7 +199,7 @@ class EIAClient:
             # Write endpoint url
             endpoint = ("electricity/" + api_path + "?data[]=value" + facet_str + start_str + end_str + length +
                         offset_str + frequency)
-            df = self.__get_electricity_data_chunk(endpoint)
+            df = self.__get_data_chunk(endpoint)
 
         df = df.sort("period")
 
