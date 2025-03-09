@@ -170,7 +170,7 @@ class EIAClient:
                     end_str = "&end=" + end.strftime("%Y-%m-%dT%H")
 
                 # Write endpoint urls
-                endpoint = ("electricity/" + api_path + "?data[]=value" + facet_str + start_str + end_str + length +
+                endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + length +
                             offset_str + frequency)
 
                 df_temp = self.__get_electricity_data_chunk(endpoint)
@@ -197,7 +197,7 @@ class EIAClient:
                 end_str = "&end=" + end.strftime("%Y-%m-%dT%H")
 
             # Write endpoint url
-            endpoint = ("electricity/" + api_path + "?data[]=value" + facet_str + start_str + end_str + length +
+            endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + length +
                         offset_str + frequency)
             df = self.__get_data_chunk(endpoint)
 

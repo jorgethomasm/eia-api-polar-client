@@ -9,7 +9,7 @@ if __name__ == "__main__":
     api_key = os.getenv("EIA_API_KEY")
     client = EIAClient(api_key)
 
-    api_path = "rto/region-sub-ba-data/data/"
+    api_path = "electricity/rto/region-sub-ba-data/data/"
 
     freq = "hourly"
 
