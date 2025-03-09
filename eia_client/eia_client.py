@@ -5,6 +5,7 @@ import polars as pl
 
 
 # ================ Helper functions ================
+
 def day_offset(start: datetime.date, end: datetime.date, offset: int) -> list:
     """
     Generate a list of date type elements with the given offset
@@ -78,38 +79,35 @@ class EIAClient:
 
         return df
 
-    def get_electricity_data(self,
-                             api_path: str,
-                             facets: Optional[dict] = None,
-                             start: Optional[Union[datetime.date, datetime.datetime]] = None,
-                             end: Optional[Union[datetime.date, datetime.datetime]] = None,
-                             length: Optional[int] = None,
-                             offset: Optional[int] = None,
-                             frequency: Optional[str] = None) -> pl.DataFrame:
+    def get_eia_data(self,
+                     api_path: str,
+                     facets: Optional[dict] = None,
+                     start: Optional[Union[datetime.date, datetime.datetime]] = None,
+                     end: Optional[Union[datetime.date, datetime.datetime]] = None,
+                     length: Optional[int] = None,
+                     offset: Optional[int] = None,
+                     frequency: Optional[str] = None) -> pl.DataFrame:
 
         # Build URL endpoint:
+        """ 
+        Parameters
+        frequency: "hourly" or "daily".
+        offset: number of observations to split requests (Recommended Max. 2000)
+        if offset parameters is None, the back-fill operation will not be performed!
+
         """
-                Vocabulary
-                route: electricity
-                rto: real-time grid monitor
-
-                Parameters
-                frequency: "hourly" or "daily".
-                offset: number of observations to split requests (Recommended Max. 2000)
-                if offset parameters is None, the back-fill operation will not be performed!
-                """
-
-        # Check if facets is not a string, list, or None
+        # Check facets type
         if facets is not None and not isinstance(facets, dict):
             raise TypeError("facets must be a dictionary or None")
 
         # Create string var for facet or extract info from the list
         facet_str = ""
         if facets is not None:
+            # Extract from dictionary
             for i in facets.keys():
                 if type(facets[i]) is list:
                     for facet in facets[i]:
-                        # Un-list and concatenate facets
+                        # Un-list and concatenate facets strings
                         facet_str = facet_str + "&facets[" + i + "][]=" + facet
                 elif type(facets[i]) is str:
                     facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
@@ -121,9 +119,9 @@ class EIAClient:
             raise TypeError("end must be a date, datetime, or None")
 
         if length is None:
-            length = ""
+            len_str = ""
         else:
-            length = "&length=" + str(length)
+            len_str = "&length=" + str(length)
 
         if offset is None:
             offset_str = ""
@@ -131,15 +129,16 @@ class EIAClient:
             offset_str = "&offset=" + str(offset)
 
         if frequency is None:
-            frequency = ""
+            freq_str = ""
         else:
-            frequency = "&frequency=" + str(frequency)
+            freq_str = "&frequency=" + frequency
 
         df = pl.DataFrame
 
         if offset is not None:
             # Do back-filling
             list_of_time_chunks = []
+
             if type(start) is datetime.date:
                 list_of_time_chunks = day_offset(start=start, end=end, offset=offset)
             elif type(start) is datetime.datetime:
@@ -147,6 +146,7 @@ class EIAClient:
 
             # Moving window (chunks)
             i_chunks = len(list_of_time_chunks)-1
+
             for i in range(0, i_chunks):
                 start = list_of_time_chunks[i]
                 if i < i_chunks-1:
@@ -170,8 +170,7 @@ class EIAClient:
                     end_str = "&end=" + end.strftime("%Y-%m-%dT%H")
 
                 # Write endpoint urls
-                endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + length +
-                            offset_str + frequency)
+                endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + offset_str + freq_str)
 
                 df_temp = self.__get_data_chunk(endpoint)
 
@@ -197,8 +196,7 @@ class EIAClient:
                 end_str = "&end=" + end.strftime("%Y-%m-%dT%H")
 
             # Write endpoint url
-            endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + length +
-                        offset_str + frequency)
+            endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + offset_str + freq_str)
             df = self.__get_data_chunk(endpoint)
 
         df = df.sort("period")
