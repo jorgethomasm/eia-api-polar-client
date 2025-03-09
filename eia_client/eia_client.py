@@ -83,7 +83,7 @@ class EIAClient:
                              facets: Optional[dict] = None,
                              start: Optional[Union[datetime.date, datetime.datetime]] = None,
                              end: Optional[Union[datetime.date, datetime.datetime]] = None,
-                             length: Optional[str] = None,
+                             length: Optional[int] = None,
                              offset: Optional[int] = None,
                              frequency: Optional[str] = None) -> pl.DataFrame:
 
@@ -139,20 +139,20 @@ class EIAClient:
 
         if offset is not None:
             # Do back-filling
-            time_splits = []
+            list_of_time_chunks = []
             if type(start) is datetime.date:
-                time_splits = day_offset(start=start, end=end, offset=offset)
+                list_of_time_chunks = day_offset(start=start, end=end, offset=offset)
             elif type(start) is datetime.datetime:
-                time_splits = hour_offset(start=start, end=end, offset=offset)
+                list_of_time_chunks = hour_offset(start=start, end=end, offset=offset)
 
             # Moving window (chunks)
-            i_splits = len(time_splits)-1
-            for i in range(0, i_splits):
-                start = time_splits[i]
-                if i < i_splits-1:
-                    end = time_splits[i+1] - datetime.timedelta(hours=1)
-                elif i == i_splits - 1:
-                    end = time_splits[i+1]
+            i_chunks = len(list_of_time_chunks)-1
+            for i in range(0, i_chunks):
+                start = list_of_time_chunks[i]
+                if i < i_chunks-1:
+                    end = list_of_time_chunks[i+1] - datetime.timedelta(hours=1)
+                elif i == i_chunks - 1:
+                    end = list_of_time_chunks[i+1]
 
                 # Start and End chunks
                 if start is None:
@@ -173,7 +173,7 @@ class EIAClient:
                 endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + length +
                             offset_str + frequency)
 
-                df_temp = self.__get_electricity_data_chunk(endpoint)
+                df_temp = self.__get_data_chunk(endpoint)
 
                 if i == 0:
                     df = df_temp  # First fill
