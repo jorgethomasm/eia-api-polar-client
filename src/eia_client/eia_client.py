@@ -86,17 +86,18 @@ class EIAClient:
                      end: Optional[Union[datetime.date, datetime.datetime]] = None,
                      length: Optional[int] = None,
                      offset: Optional[int] = None,
-                     frequency: Optional[str] = None) -> pl.DataFrame:
-
-        # Build URL endpoint:
+                     frequency: Optional[str] = None) -> pl.DataFrame:        
         """ 
         Parameters
         frequency: "hourly" or "daily".
-        offset: number of observations to split requests (Recommended Max. 2000)
-        if offset parameters is None, the back-fill operation will not be performed!
-
+        offset: number of observations to split requests (Chunks). Recommended Max. 2000.
+        If offset parameters is None, the back-fill operation will not be performed!
         """
-        # Check facets type
+        # ===== Check input parameters =====
+        
+        if not isinstance(api_path, str):
+            raise TypeError("api_path must be a string")        
+        
         if facets is not None and not isinstance(facets, dict):
             raise TypeError("facets must be a dictionary or None")
 
@@ -135,6 +136,7 @@ class EIAClient:
 
         df = pl.DataFrame
 
+        # Build url endpoint
         if offset is not None:
             # Do back-filling
             list_of_time_chunks = []
@@ -202,8 +204,6 @@ class EIAClient:
 
             # Write endpoint url
             endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + offset_str + freq_str)
-            df = self.__get_data_chunk(endpoint)
+            df = self.__get_data_chunk(endpoint)        
 
-        df = df.sort("period")
-
-        return df
+        return df.sort("period")
