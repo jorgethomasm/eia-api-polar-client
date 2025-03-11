@@ -6,7 +6,7 @@ import plotly.express as px
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from eia_client import EIAClient
 
-def test_client_no_backfill():
+def test_client_backfill():
 
     api_key = os.getenv("EIA_API_KEY")
     
@@ -20,10 +20,10 @@ def test_client_no_backfill():
 
     # Subfilter categories
     facets = {"parent": "CISO", "subba": "SDGE"}
-    dt_start = datetime.datetime(2024, 1, 1, 1)
-    dt_end = datetime.datetime(2024, 1, 10, 23)
+    dt_start = datetime.datetime(2023, 1, 1, 1)
+    dt_end = datetime.datetime(2025, 1, 31, 23)
 
-    df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end) 
+    df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000) 
     
     print(f"{df.height} observations returned")
 
@@ -33,4 +33,4 @@ def test_client_no_backfill():
     
     return print(df)
 
-test_client_no_backfill()
+test_client_backfill()
