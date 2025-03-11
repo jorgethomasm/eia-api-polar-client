@@ -25,7 +25,12 @@ class EIAClient:
         data = self.__get_data(endpoint)  # as json
         # Convert JSON to Polars DataFrame
         df = pl.DataFrame(data["response"]["data"])
-        # Reformating the output
+        
+        # Check if the DataFrame is empty
+        if df.is_empty():
+            raise ValueError("The DataFrame is empty. No data was retrieved from the API.")
+        
+        # Reformating the output        
         df = df.with_columns(
             [
                 pl.col("value").cast(pl.Float64),
@@ -39,7 +44,7 @@ class EIAClient:
 
     # ================ Helper functions ================
 
-    def __day_offset(start: datetime.date, end: datetime.date, offset: int) -> list:
+    def __day_offset(self, start: datetime.date, end: datetime.date, offset: int) -> list:
         """
         Generate a list of date type elements with the given offset
         representing days. This helper function is for the back-fill operation,
@@ -57,7 +62,7 @@ class EIAClient:
         current.append(end)
         return current
 
-    def __hour_offset(start: datetime.datetime, end: datetime.datetime, offset: int) -> list:
+    def __hour_offset(self, start: datetime.datetime, end: datetime.datetime, offset: int) -> list:
         """
         Generate a list of datetime type elements with the given offset
         representing hours. This helper function is for the back-fill operation,
@@ -143,6 +148,7 @@ class EIAClient:
 
             if type(start) is datetime.date:
                 list_of_time_chunks = self.__day_offset(start=start, end=end, offset=offset)
+
             elif type(start) is datetime.datetime:
                 list_of_time_chunks = self.__hour_offset(start=start, end=end, offset=offset)
 

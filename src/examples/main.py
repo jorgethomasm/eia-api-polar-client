@@ -1,5 +1,11 @@
 import os
+import sys
 import datetime
+
+
+# Add the src directory to the PYTHONPATH
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+
 from eia_client import EIAClient
 
 
@@ -30,7 +36,7 @@ if __name__ == "__main__":
         
     """
 
-    dt_start = datetime.datetime(2023, 1, 1, 1)
+    dt_start = datetime.datetime(2024, 1, 1, 1)
     dt_end = datetime.datetime(2025, 1, 10, 23)
 
     #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end)
