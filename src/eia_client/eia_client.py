@@ -15,6 +15,7 @@ class EIAClient:
         params["api_key"] = self.api_key
 
         full_url = f"{self.BASE_URL}{endpoint}"
+        print(full_url)
         response = requests.get(url=full_url, params=params)
         response.raise_for_status()
         return response.json()
@@ -80,9 +81,7 @@ class EIAClient:
         current.append(end)
         return current
 
-    # ==================================================
-    
-    
+    # ==================================================    
     
     def get_eia_data(self,
                      api_path: str,
@@ -160,7 +159,7 @@ class EIAClient:
                 start = list_of_time_chunks[i]
                 if i < i_chunks-1:
                     end = list_of_time_chunks[i+1] - datetime.timedelta(hours=1)
-                elif i == i_chunks - 1:
+                elif i == i_chunks-1:
                     end = list_of_time_chunks[i+1]
 
                 # Start and End chunks
@@ -179,7 +178,7 @@ class EIAClient:
                     end_str = "&end=" + end.strftime("%Y-%m-%dT%H")
 
                 # Write endpoint urls
-                endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + offset_str + freq_str)
+                endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + freq_str)
 
                 df_temp = self.__get_data_chunk(endpoint)
 

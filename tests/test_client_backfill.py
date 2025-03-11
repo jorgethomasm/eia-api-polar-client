@@ -1,4 +1,3 @@
-
 import datetime
 import os
 import sys
@@ -20,7 +19,7 @@ def test_client_backfill():
 
     # Subfilter categories
     facets = {"parent": "CISO", "subba": "SDGE"}
-    dt_start = datetime.datetime(2023, 1, 1, 1)
+    dt_start = datetime.datetime(2024, 1, 1, 1)
     dt_end = datetime.datetime(2025, 1, 31, 23)
 
     df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000) 
