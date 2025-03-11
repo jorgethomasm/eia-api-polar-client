@@ -4,48 +4,6 @@ from typing import Optional, Union
 import polars as pl
 
 
-# ================ Helper functions ================
-
-def day_offset(start: datetime.date, end: datetime.date, offset: int) -> list:
-    """
-    Generate a list of date type elements with the given offset
-    representing days. This helper function is for the back-fill operation,
-    given that the maximum request size of the API is of approximate 2500 observations.
-    """
-    current = [start]
-    last_date = start
-    while last_date < end:
-        next_date = last_date + datetime.timedelta(days=offset)
-        if next_date < end:
-            current.append(next_date)
-            last_date = next_date
-        else:
-            break
-    current.append(end)
-    return current
-
-
-def hour_offset(start: datetime.datetime, end: datetime.datetime, offset: int) -> list:
-    """
-    Generate a list of datetime type elements with the given offset
-    representing hours. This helper function is for the back-fill operation,
-    given that the maximum request size of the API is of approximate 2500 observations.
-    """
-    current = [start]
-    last_datetime = start
-    while last_datetime < end:
-        next_datetime = last_datetime + datetime.timedelta(hours=offset)
-        if next_datetime < end:
-            current.append(next_datetime)
-            last_datetime = next_datetime
-        else:
-            break
-    current.append(end)
-    return current
-
-
-# ==================================================
-
 class EIAClient:
     BASE_URL = "https://api.eia.gov/v2/"
 
@@ -79,6 +37,48 @@ class EIAClient:
 
         return df
 
+    # ================ Helper functions ================
+
+    def __day_offset(start: datetime.date, end: datetime.date, offset: int) -> list:
+        """
+        Generate a list of date type elements with the given offset
+        representing days. This helper function is for the back-fill operation,
+        given that the maximum request size of the API is of approximate 2500 observations.
+        """
+        current = [start]
+        last_date = start
+        while last_date < end:
+            next_date = last_date + datetime.timedelta(days=offset)
+            if next_date < end:
+                current.append(next_date)
+                last_date = next_date
+            else:
+                break
+        current.append(end)
+        return current
+
+    def __hour_offset(start: datetime.datetime, end: datetime.datetime, offset: int) -> list:
+        """
+        Generate a list of datetime type elements with the given offset
+        representing hours. This helper function is for the back-fill operation,
+        given that the maximum request size of the API is of approximate 2500 observations.
+        """
+        current = [start]
+        last_datetime = start
+        while last_datetime < end:
+            next_datetime = last_datetime + datetime.timedelta(hours=offset)
+            if next_datetime < end:
+                current.append(next_datetime)
+                last_datetime = next_datetime
+            else:
+                break
+        current.append(end)
+        return current
+
+    # ==================================================
+    
+    
+    
     def get_eia_data(self,
                      api_path: str,
                      facets: Optional[dict] = None,
@@ -100,7 +100,7 @@ class EIAClient:
         if facets is not None and not isinstance(facets, dict):
             raise TypeError("facets must be a dictionary or None")
 
-        # Create string variable for facet or extract info from the list
+        # Create string var for facet or extract info from the list
         facet_str = ""
         if facets is not None:
             # Extract from dictionary
@@ -140,14 +140,15 @@ class EIAClient:
             list_of_time_chunks = []
 
             if type(start) is datetime.date:
-                list_of_time_chunks = day_offset(start=start, end=end, offset=offset)
+                list_of_time_chunks = self.__day_offset(start=start, end=end, offset=offset)
             elif type(start) is datetime.datetime:
-                list_of_time_chunks = hour_offset(start=start, end=end, offset=offset)
+                list_of_time_chunks = self.__hour_offset(start=start, end=end, offset=offset)
 
             # Moving window (chunks)
             i_chunks = len(list_of_time_chunks)-1
 
             for i in range(0, i_chunks):
+
                 start = list_of_time_chunks[i]
                 if i < i_chunks-1:
                     end = list_of_time_chunks[i+1] - datetime.timedelta(hours=1)
@@ -178,8 +179,12 @@ class EIAClient:
                     df = df_temp  # First fill
                 else:
                     # Back-fill the rest
-                    df = df.vstack(df_temp)
+                    # df = df.vstack(df_temp)                    
+                    # try to append in place
+                    df.extend(df_temp)
+        
         else:
+            
             # Do not do back-filling
             if start is None:
                 start_str = ""
