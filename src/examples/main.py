@@ -37,10 +37,10 @@ if __name__ == "__main__":
     """
 
     dt_start = datetime.datetime(2024, 1, 1, 1)
-    dt_end = datetime.datetime(2025, 1, 10, 23)
+    dt_end = datetime.datetime(2024, 1, 10, 23)
 
-    #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end)
+    df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end)
 
-    df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
+    #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
 
     print(df)
