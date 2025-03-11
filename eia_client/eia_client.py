@@ -100,7 +100,7 @@ class EIAClient:
         if facets is not None and not isinstance(facets, dict):
             raise TypeError("facets must be a dictionary or None")
 
-        # Create string var for facet or extract info from the list
+        # Create string variable for facet or extract info from the list
         facet_str = ""
         if facets is not None:
             # Extract from dictionary
