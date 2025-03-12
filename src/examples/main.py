@@ -27,8 +27,8 @@ if __name__ == "__main__":
 
     # Subfilter categories
     facets = {
-        "parent": "CISO",
-        "subba": "SDGE"
+        "parent": "CISO",  # California Independent System Operator
+        "subba": "SDGE"  # San Diego Gas & Electric
     }
 
     """
@@ -44,3 +44,5 @@ if __name__ == "__main__":
     #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
 
     print(df)
+
+    client.save_df_as_duckdb(df, path="./data/raw/eia_data.duckdb")

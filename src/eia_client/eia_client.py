@@ -2,6 +2,7 @@ import datetime
 import requests
 from typing import Optional, Union
 import polars as pl
+import duckdb
 
 
 class EIAClient:
@@ -43,7 +44,7 @@ class EIAClient:
 
         return df
 
-    # ================ Helper functions ================
+    # ================ Helper methods ================
 
     def __day_offset(self, start: datetime.date, end: datetime.date, offset: int) -> list:
         """
@@ -81,7 +82,7 @@ class EIAClient:
         current.append(end)
         return current
 
-    # ==================================================    
+    # ================================================  
     
     def get_eia_data(self,
                      api_path: str,
@@ -94,7 +95,7 @@ class EIAClient:
         """ 
         Parameters
         frequency: "hourly" or "daily".
-        offset: number of observations to split requests (Chunks). Recommended Max. 2000.
+        offset: number of observations to split requests (chunks). Recommended Max. 2000.
         If offset parameters is None, the back-fill operation will not be performed!
         """
         # ===== Check input parameters =====
@@ -212,3 +213,14 @@ class EIAClient:
             df = self.__get_data_chunk(endpoint)        
 
         return df.sort("period")
+    
+    def save_df_as_duckdb(self, df: pl.DataFrame, path: str = "./data/raw/eia_data.duckdb") -> None:
+        """
+        Save a Polars DataFrame with the requested EIA data to a DuckDB file.
+        """
+        con = duckdb.connect("./data/raw/eia_data.duckdb")
+        con.execute("CREATE TABLE eia_data AS SELECT * FROM df")
+        con.close()
+                
+        return None
+        

@@ -32,4 +32,6 @@ def test_client_backfill():
     
     return print(df)
 
-test_client_backfill()
+
+if __name__ == "__main__":
+    test_client_backfill()
