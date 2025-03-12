@@ -16,7 +16,7 @@ class EIAClient:
         params["api_key"] = self.api_key
 
         full_url = f"{self.BASE_URL}{endpoint}"
-        print(full_url)
+        print(f"Requesting...\n{full_url}")
         response = requests.get(url=full_url, params=params)
         response.raise_for_status()
         return response.json()
@@ -218,7 +218,7 @@ class EIAClient:
         """
         Save a Polars DataFrame with the requested EIA data to a DuckDB file.
         """
-        con = duckdb.connect("./data/raw/eia_data.duckdb")
+        con = duckdb.connect(path)
         con.execute("CREATE TABLE eia_data AS SELECT * FROM df")
         con.close()
                 

@@ -1,11 +1,8 @@
 import os
 import sys
 import datetime
-
-
 # Add the src directory to the PYTHONPATH
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
-
 from eia_client import EIAClient
 
 
@@ -30,19 +27,13 @@ if __name__ == "__main__":
         "parent": "CISO",  # California Independent System Operator
         "subba": "SDGE"  # San Diego Gas & Electric
     }
+    
+    dt_start = datetime.datetime(2022, 1, 1, 1)
+    dt_end = datetime.datetime(2024, 12, 31, 23)
 
-    """
-    https://api.eia.gov/v2/electricity/rto/region-sub-ba-data/data/?frequency=hourly&data[0]=value&facets[parent][]=CISO&facets[subba][]=SDGE&start=2025-01-01T00&end=2025-02-28T00&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000
-        
-    """
-
-    dt_start = datetime.datetime(2024, 1, 1, 1)
-    dt_end = datetime.datetime(2024, 1, 10, 23)
-
-    df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end)
-
-    #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
+    #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end)
+    df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
 
     print(df)
 
-    client.save_df_as_duckdb(df, path="./data/raw/eia_data.duckdb")
+    client.save_df_as_duckdb(df, path="./data/raw/eia_SDGE_2022_2024.duckdb")
