@@ -28,12 +28,12 @@ if __name__ == "__main__":
         "subba": "SDGE"  # San Diego Gas & Electric
     }
     
-    dt_start = datetime.datetime(2025, 1, 1, 1)
-    dt_end = datetime.datetime(2025, 2, 28, 23)
+    dt_start = datetime.datetime(2024, 1, 1, 0)
+    dt_end = datetime.datetime(2025, 1, 1, 0)
 
-    df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end)
-    #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
+    #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end)
+    df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
 
     print(df)
 
-    client.save_df_as_duckdb(df, path="./data/raw/eia_SDGE_2025_demo.duckdb", table_name="eia_data")
+    client.save_df_as_duckdb(df, path="./data/raw/eia_SDGE_2024_demo.duckdb", table_name="eia_data")

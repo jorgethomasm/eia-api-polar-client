@@ -186,10 +186,8 @@ class EIAClient:
                 if i == 0:
                     df = df_temp  # First fill
                 else:
-                    # Back-fill the rest
-                    # df = df.vstack(df_temp)                    
-                    # try to append in place
-                    df.extend(df_temp)
+                    # Back-fill the rest                                        
+                    df.extend(df_temp)  # append in place
         
         else:
             
