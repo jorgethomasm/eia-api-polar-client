@@ -8,7 +8,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 # Example usage
 if __name__ == "__main__":
-    con = duckdb.connect("./data/raw/eia_sdge_2022_2024.duckdb")
+    con = duckdb.connect("./data/raw/eia_sdge_2025_demo.duckdb")
+    
+    df = con.execute("""
+    SELECT period, subba-name, value FROM eia_data
+                """).pl()
+    con.close()
+
+    print(df)
 
 
 

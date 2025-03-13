@@ -214,12 +214,13 @@ class EIAClient:
 
         return df.sort("period")
     
-    def save_df_as_duckdb(self, df: pl.DataFrame, path: str = "./data/raw/eia_data.duckdb") -> None:
+    def save_df_as_duckdb(self, df: pl.DataFrame, path: str = "./data/raw/eia_data.duckdb", table_name: str = "eia_data") -> None:
         """
         Save a Polars DataFrame with the requested EIA data to a DuckDB file.
         """
+        sql_string = f"CREATE TABLE {table_name} AS SELECT * FROM df"
         con = duckdb.connect(path)
-        con.execute("CREATE TABLE eia_data AS SELECT * FROM df")
+        con.execute(sql_string)
         con.close()
                 
         return None
