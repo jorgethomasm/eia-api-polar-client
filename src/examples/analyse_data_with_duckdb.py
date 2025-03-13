@@ -17,7 +17,8 @@ if __name__ == "__main__":
     con.close()  
     print(df)
     # Plot
-    fig_ts = px.line(df, x='period', y='MWh', title=f'Hourly Energy Demand from {df["BalancingAuthority"][0]} during {df["period"][0].year}')   
+    fig_ts = px.line(df, x='period', y='MWh', 
+                     title=f'Hourly Energy Demand from {df["BalancingAuthority"][0]} during {df["period"][0].year}')   
     fig_ts.show()
 
 
@@ -35,9 +36,9 @@ if __name__ == "__main__":
     print(df_monthly)
     # Plot
     fig_bar = px.bar(df_monthly, x='Month', y='MWh', 
-                 title=f'Monthly Energy Demand from {df_monthly["BalancingAuthority"][0]} during {df["period"][0].year}', 
-                 opacity=0.6, 
-                 text_auto=True)
+                     title=f'Monthly Energy Demand from {df_monthly["BalancingAuthority"][0]} during {df["period"][0].year}', 
+                     opacity=0.6, 
+                     text_auto=True)
     fig_bar.update_xaxes(
         tickmode='array',
         tickvals=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
