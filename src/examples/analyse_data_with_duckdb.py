@@ -7,30 +7,31 @@ if __name__ == "__main__":
     
     # ------------ e.g. 1: Get some columns and plot ------------
     con = duckdb.connect("./data/raw/eia_sdge_2024_demo.duckdb")
+    
     df = con.execute("""
-                     SELECT period, 
+                     SELECT period AT TIME ZONE 'UTC' AS period, 
                      "subba-name" AS "BalancingAuthority", 
                      value AS MWh 
                      FROM eia_data
-                     """).pl()
-    con.close()
+                     """).pl()  
+    con.close()  
     print(df)
     # Plot
     fig_ts = px.line(df, x='period', y='MWh', title=f'Hourly Energy Demand from {df["BalancingAuthority"][0]} during {df["period"][0].year}')   
     fig_ts.show()
 
 
-    # ------------ e.g. 2: cumsum energy demand by month ------------ 
-    con = duckdb.connect("./data/raw/eia_sdge_2024_demo.duckdb")    
-    df_monthly = con.execute("""
+    # ------------ e.g. 2: Energy demand by month ------------ 
+    # SQL query direct from a Polars DataFrame!
+    df_monthly = duckdb.sql("""
                              SELECT MONTH(period) AS Month, 
-                             ANY_VALUE("subba-name") AS "BalancingAuthority", 
-                             SUM(value) AS MWh 
-                             FROM eia_data 
+                             ANY_VALUE("BalancingAuthority") AS BalancingAuthority, 
+                             SUM(MWh) AS MWh 
+                             FROM df 
                              GROUP BY Month 
                              ORDER BY Month
                 """).pl()
-    con.close()
+   
     print(df_monthly)
     # Plot
     fig_bar = px.bar(df_monthly, x='Month', y='MWh', 
