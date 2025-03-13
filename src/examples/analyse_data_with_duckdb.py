@@ -45,6 +45,17 @@ if __name__ == "__main__":
     fig_bar.show()
 
 
+    # ------------ Weekly energy demand ------------
+
+    duckdb.sql(
+        """
+        SELECT DATE_TRUNC('week', period - INTERVAL 2 DAYS) + INTERVAL 2 DAYS AS week_start, 
+        SUM(MWh) AS MWh
+        FROM df
+        GROUP BY week_start
+        ORDER BY week_start
+    """)
+
 
 
 
