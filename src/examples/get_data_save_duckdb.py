@@ -31,9 +31,11 @@ if __name__ == "__main__":
     dt_start = datetime.datetime(2024, 1, 1, 0)
     dt_end = datetime.datetime(2025, 1, 1, 0)
 
+    # No Back-filling
     #df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end)
+    
+    # Back-filling (large dataset request)
     df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
 
     print(df)
-
     client.save_df_as_duckdb(df, path="./data/raw/eia_SDGE_2024_demo.duckdb", table_name="eia_data")
