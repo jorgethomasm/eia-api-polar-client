@@ -1,3 +1,8 @@
+"""
+This module contains the EIA Client class, which is used to interact with the EIA API.
+Original code from: Rami Krispin https://github.com/LinkedInLearning/data-pipeline-automation-with-github-actions-4503382/blob/main/python/eia_api.py
+OOP Refactoring and extra methods by: Jorge Thomas https://github.com/jorgethomasm
+"""
 import datetime
 import requests
 from typing import Optional, Union
