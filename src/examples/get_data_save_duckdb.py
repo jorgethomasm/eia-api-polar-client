@@ -28,7 +28,7 @@ if __name__ == "__main__":
         "subba": "SDGE"  # San Diego Gas & Electric
     }
     
-    dt_start = datetime.datetime(2024, 1, 1, 0)
+    dt_start = datetime.datetime(2020, 1, 1, 0)
     dt_end = datetime.datetime(2025, 1, 1, 0)
 
     # No Back-filling
@@ -36,6 +36,12 @@ if __name__ == "__main__":
     
     # Back-filling (large dataset request)
     df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
-
     print(df)
-    client.save_df_as_duckdb(df, path="./data/demo/eia_SDGE_2024_demo.duckdb", table_name="eia_data")
+
+    # Save the data to a DuckDB file
+    client.save_df_as_duckdb(df, path="./data/raw/eia_SDGE_2024_demo.duckdb", table_name="eia_data")
+
+    # With Polars is super easy to save the data to a Parquet file
+    # Ideal for static (not updatable) datasets
+    df.write_parquet("./data/raw/eia_SDGE_2020_2024_demo.parquet")
+    

@@ -220,11 +220,12 @@ class EIAClient:
     def save_df_as_duckdb(self, df: pl.DataFrame, path: str = "./data/raw/eia_data.duckdb", table_name: str = "eia_data") -> None:
         """
         Save a Polars DataFrame with the requested EIA data to a DuckDB file.
+        Ideal for large dynamic (updatable) the dataset and quick data analysis.
         """
         query = f"CREATE TABLE {table_name} AS SELECT * FROM df"
         con = duckdb.connect(path)
         con.execute(query)
         con.close()
                 
-        return None
+        return None  
         

@@ -31,7 +31,7 @@ if __name__ == "__main__":
                              FROM df 
                              GROUP BY Month 
                              ORDER BY Month
-                """).pl()
+                            """).pl()
    
     print(df_monthly)
     # Plot
