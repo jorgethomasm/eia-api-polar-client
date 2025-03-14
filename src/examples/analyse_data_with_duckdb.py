@@ -1,4 +1,5 @@
 import duckdb
+import polars as pl
 import plotly.express as px
 
 
@@ -57,4 +58,21 @@ if __name__ == "__main__":
         FROM df
         GROUP BY week_start
         ORDER BY week_start
-    """).show()
+        """).show()
+
+
+    # ------------ e.g. 4 Working with parquet files ------------ 
+    # Read parquet file and summarase yearly energy demand    
+    df_pq = pl.read_parquet("./data/demo/eia_SDGE_2020_2024_demo.parquet")    
+    
+    df_pq_yearly = duckdb.sql("""
+                              SELECT YEAR(period) AS Year, 
+                              ANY_VALUE("subba-name") AS BalancingAuthority, 
+                              SUM(value) AS MWh 
+                              FROM df_pq 
+                              GROUP BY Year 
+                              ORDER BY Year
+                              """).pl()
+
+    print(df_pq_yearly)                       
+                             
