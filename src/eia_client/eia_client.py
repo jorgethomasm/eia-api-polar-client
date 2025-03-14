@@ -221,9 +221,9 @@ class EIAClient:
         """
         Save a Polars DataFrame with the requested EIA data to a DuckDB file.
         """
-        sql_string = f"CREATE TABLE {table_name} AS SELECT * FROM df"
+        query = f"CREATE TABLE {table_name} AS SELECT * FROM df"
         con = duckdb.connect(path)
-        con.execute(sql_string)
+        con.execute(query)
         con.close()
                 
         return None

@@ -38,4 +38,4 @@ if __name__ == "__main__":
     df = client.get_eia_data(api_path=api_path, frequency=freq, facets=facets, start=dt_start, end=dt_end, offset=2000)
 
     print(df)
-    client.save_df_as_duckdb(df, path="./data/raw/eia_SDGE_2024_demo.duckdb", table_name="eia_data")
+    client.save_df_as_duckdb(df, path="./data/demo/eia_SDGE_2024_demo.duckdb", table_name="eia_data")

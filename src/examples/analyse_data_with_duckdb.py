@@ -6,7 +6,7 @@ import plotly.express as px
 if __name__ == "__main__":
     
     # ------------ e.g. 1: Get some columns and plot ------------
-    con = duckdb.connect("./data/raw/eia_sdge_2024_demo.duckdb")
+    con = duckdb.connect("./data/demo/eia_sdge_2024_demo.duckdb")
     
     df = con.execute("""
                      SELECT period AT TIME ZONE 'UTC' AS period, 
