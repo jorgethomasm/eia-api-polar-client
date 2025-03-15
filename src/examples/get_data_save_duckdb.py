@@ -13,14 +13,12 @@ if __name__ == "__main__":
     Vocabulary
     route: e.g. electricity
     rto: real-time grid monitor
-    """
-
-    api_key = os.getenv("EIA_API_KEY")
-    client = EIAClient(api_key)
+    """  
+    client = EIAClient(api_key=os.getenv("EIA_API_KEY"))
 
     api_path = "electricity/rto/region-sub-ba-data/data/"
 
-    freq = "hourly" # monthly, annual;
+    freq = "hourly" #  or monthly;
 
     # Subfilter categories
     facets = {

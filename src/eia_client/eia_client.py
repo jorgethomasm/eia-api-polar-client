@@ -29,24 +29,14 @@ class EIAClient:
     def __get_data_chunk(self, endpoint: str) -> pl.DataFrame:
 
         # Call private method __get_data
-        data = self.__get_data(endpoint)  # as json
+        eia_payload = self.__get_data(endpoint)  #  dictionary
         # Convert JSON to Polars DataFrame
-        df = pl.DataFrame(data["response"]["data"])
+        df = pl.DataFrame(eia_payload["response"]["data"])  # data is a list of dicts (rows) within the response dict
         
         # Check if the DataFrame is empty
         if df.is_empty():
-            raise ValueError("The DataFrame is empty. No data was retrieved from the API.")
+            raise ValueError("The DataFrame is empty. No data was retrieved from the API.")       
         
-        # Reformating the output        
-        df = df.with_columns(
-            [
-                pl.col("value").cast(pl.Float64),
-                pl.col("period") + ":00"
-                ]
-            )
-
-        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
-
         return df
 
     # ================ Helper methods ================
@@ -86,6 +76,21 @@ class EIAClient:
                 break
         current.append(end)
         return current
+    
+    def __format_df_columns(self, df: pl.DataFrame) -> pl.DataFrame:
+        """
+        Format the columns types of the Polars DataFrame.
+        """
+        df = df.with_columns(
+            [
+                pl.col("value").cast(pl.Float64),
+                pl.col("period") + ":00"
+                ]
+            )
+
+        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
+        return df    
+
 
     # ================================================  
     
@@ -213,14 +218,19 @@ class EIAClient:
 
             # Write endpoint url
             endpoint = (api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + offset_str + freq_str)
-            df = self.__get_data_chunk(endpoint)        
+            df = self.__get_data_chunk(endpoint)  
 
+        # Format the columns of the DataFrame
+        df = self.__format_df_columns(df) 
+
+        # Sort the DataFrame by period
         return df.sort("period")
+    
     
     def save_df_as_duckdb(self, df: pl.DataFrame, path: str = "./data/raw/eia_data.duckdb", table_name: str = "eia_data") -> None:
         """
         Save a Polars DataFrame with the requested EIA data to a DuckDB file.
-        Ideal for large dynamic (updatable) the dataset and quick data analysis.
+        Ideal for large dynamic (updatable) dataset and quick data analysis.
         """
         query = f"CREATE TABLE {table_name} AS SELECT * FROM df"
         con = duckdb.connect(path)
