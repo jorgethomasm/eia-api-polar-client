@@ -77,18 +77,28 @@ class EIAClient:
         current.append(end)
         return current
     
-    def __format_df_columns(self, df: pl.DataFrame) -> pl.DataFrame:
+    def __format_df_columns(self, df: pl.DataFrame, frequency: str) -> pl.DataFrame:
         """
         Format the columns types of the Polars DataFrame.
         """
-        df = df.with_columns(
-            [
-                pl.col("value").cast(pl.Float64),
-                pl.col("period") + ":00"
-                ]
-            )
-
-        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
+        if frequency == "hourly":
+            df = df.with_columns(
+                [
+                    pl.col("value").cast(pl.Float64),
+                    pl.col("period") + ":00"
+                    ]
+                )
+            df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
+        elif frequency == "daily":
+            df = df.with_columns(
+                [
+                    pl.col("value").cast(pl.Float64),
+                    pl.col("period").str.to_date()                    
+                    ]
+                )
+        else:
+            raise ValueError("Frequency must be 'hourly' or 'daily'")
+        
         return df    
 
 
@@ -221,7 +231,7 @@ class EIAClient:
             df = self.__get_data_chunk(endpoint)  
 
         # Format the columns of the DataFrame
-        df = self.__format_df_columns(df) 
+        df = self.__format_df_columns(df, frequency=frequency) 
 
         # Sort the DataFrame by period
         return df.sort("period")
