@@ -120,7 +120,7 @@ class EIAPolarClient:
 
             start_str = "&start=" + dt_starts[i].strftime("%Y-%m-%dT%H")  # Format: # 2024-01-01T01
             end_str = "&end=" + dt_ends[i].strftime("%Y-%m-%dT%H")   
-            
+
             endpoints.append(self.BASE_URL + api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + freq_str)
         
         # Display the number of chunks and the endpoints
@@ -184,7 +184,12 @@ class EIAPolarClient:
         
         # Format the columns and sort the DataFrame
         df = self.__format_df_columns(df) 
+
+        #TODO: Add method to store df metadata in a duckdb (e.g. facets, start, end, etc.)
+        # df.metadata = {"facets": facets, "start": start, "end": end}
         
+        #self.save_df_as_duckdb(df, path="./data/metadata/eia_metadata.duckdb", table_name="metadata")
+
         return df
     
     
