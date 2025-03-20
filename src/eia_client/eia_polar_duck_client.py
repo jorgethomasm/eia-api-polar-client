@@ -95,12 +95,15 @@ class EIAPolarDuckClient:
         for i in range(len(dt_starts)):
             start_str = "&start=" + dt_starts[i].strftime("%Y-%m-%dT%H")  # Format: # 2024-01-01T01
             end_str = "&end=" + dt_ends[i].strftime("%Y-%m-%dT%H")   
-            endpoints.append(self.BASE_URL + api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + freq_str) 
+            endpoints.append(self.BASE_URL + api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + freq_str)
+        
+        # Display the number of chunks and the endpoints
+        print(f"\nNumber of chunks: {len(endpoints)}\n\nRequesting in parallel the following endpoints:\n")
+        for endpoint in endpoints:
+                print(endpoint)
         
         return endpoints
 
-    # ================ Helper methods ================
-    
     def __format_df_columns(self, df: pl.DataFrame) -> pl.DataFrame:
         """
         Format the columns types of the Polars DataFrame.
@@ -144,9 +147,7 @@ class EIAPolarDuckClient:
 
         # Generate the list of endpoints urls to be requested
         endpoints = self.__get_endpoint_chunks(api_path, facets, start, end)
-        print(f"\nNumber of chunks: {len(endpoints)}\n\nRequesting in parallel the following endpoints:\n")
-        for endpoint in endpoints:
-                print(endpoint)
+        
 
         # Get the data from the API
         df = self.__get_data(endpoints)
