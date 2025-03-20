@@ -17,6 +17,22 @@ class EIAPolarDuckClient:
         self.api_key = api_key        
 
     def __get_data(self, endpoints_urls: list, params=None) -> pl.DataFrame:
+        """
+        Fetches data from multiple API endpoints and returns a concatenated Polars DataFrame.
+        This method sends GET requests to the provided list of endpoint URLs using a thread pool
+        for concurrent execution. The responses are parsed into JSON, converted into Polars
+        DataFrames, and concatenated into a single DataFrame.
+        Args:
+            endpoints_urls (list): A list of endpoint URLs to fetch data from.
+            params (dict, optional): Additional query parameters to include in the API requests.
+                Defaults to None. The API key is automatically added to the parameters.
+        Returns:
+            pl.DataFrame: A concatenated Polars DataFrame containing the data retrieved from
+            all the endpoints.
+        Raises:
+            requests.exceptions.RequestException: If any of the API requests fail.
+            ValueError: If the resulting DataFrame is empty, indicating no data was retrieved.
+        """
 
         params = params or {}
         params["api_key"] = self.api_key
@@ -146,8 +162,7 @@ class EIAPolarDuckClient:
         # ===================================
 
         # Generate the list of endpoints urls to be requested
-        endpoints = self.__get_endpoint_chunks(api_path, facets, start, end)
-        
+        endpoints = self.__get_endpoint_chunks(api_path, facets, start, end)        
 
         # Get the data from the API
         df = self.__get_data(endpoints)
