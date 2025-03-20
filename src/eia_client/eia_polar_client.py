@@ -1,6 +1,7 @@
 """
-This module contains the EIAPolarDuckClient class, which is used to interact with the EIA API.
+This module contains the EIAPolarClient class, which is used to interact with the EIA API.
 By: Jorge Thomas https://github.com/jorgethomasm
+Date: 2025-03-01
 """
 import datetime
 import requests
@@ -11,6 +12,11 @@ import duckdb
 
 
 class EIAPolarClient:
+    """	
+    A client to interact with the U.S. Energy Information Administration (EIA) API using Polars DataFrames.
+    The client provides methods to fetch data from the EIA API, format the data into Polars DataFrames, and save
+    the data to a DuckDB file."""
+
     BASE_URL = "https://api.eia.gov/v2/"
 
     def __init__(self, api_key):
@@ -98,7 +104,7 @@ class EIAPolarClient:
             )
         
         dt_starts, dt_ends = [], []
-        if df.height > 2000:
+        if df.height > offset:
             # Split requests in chunks in heights of 2000            
             chunks = [df.slice(i, offset) for i in range(0, len(df), offset)]
             for chunk in chunks:
@@ -111,8 +117,10 @@ class EIAPolarClient:
         # Build list of endpoints for each chunk   
         endpoints = []
         for i in range(len(dt_starts)):
+
             start_str = "&start=" + dt_starts[i].strftime("%Y-%m-%dT%H")  # Format: # 2024-01-01T01
             end_str = "&end=" + dt_ends[i].strftime("%Y-%m-%dT%H")   
+            
             endpoints.append(self.BASE_URL + api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + freq_str)
         
         # Display the number of chunks and the endpoints
@@ -124,8 +132,7 @@ class EIAPolarClient:
         else:
             print(f"\nRequesting the following endpoint:\n")
             print(endpoints[0])
-        
-        
+                
         return endpoints
 
     def __format_df_columns(self, df: pl.DataFrame) -> pl.DataFrame:

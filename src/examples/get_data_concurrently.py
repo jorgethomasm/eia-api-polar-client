@@ -27,7 +27,7 @@ if __name__ == "__main__":
     }
     
     dt_start = datetime.datetime(2025, 1, 1, 0)
-    dt_end = datetime.datetime(2025, 1, 10, 0)   # 2020-03-24T07:00:00
+    dt_end = datetime.datetime(2025, 1, 10, 0)
    
     df = client.get_eia_data(api_path=api_path, facets=facets, start=dt_start, end=dt_end)
     print(df)
