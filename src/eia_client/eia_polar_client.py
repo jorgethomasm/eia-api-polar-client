@@ -10,7 +10,7 @@ import polars as pl
 import duckdb
 
 
-class EIAPolarDuckClient:
+class EIAPolarClient:
     BASE_URL = "https://api.eia.gov/v2/"
 
     def __init__(self, api_key):

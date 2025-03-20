@@ -3,7 +3,7 @@ import sys
 import datetime
 # Add the src directory to the PYTHONPATH
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
-from eia_client import EIAPolarDuckClient
+from eia_client import EIAPolarClient
 
 
 # Example usage
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     route: e.g. electricity
     rto: real-time grid monitor
     """  
-    client = EIAPolarDuckClient(api_key=os.getenv("EIA_API_KEY"))
+    client = EIAPolarClient(api_key=os.getenv("EIA_API_KEY"))
 
     api_path = "electricity/rto/region-sub-ba-data/data/"
 
