@@ -26,8 +26,8 @@ if __name__ == "__main__":
         "subba": "SDGE"  # San Diego Gas & Electric
     }
     
-    dt_start = datetime.datetime(2020, 1, 1, 0)
-    dt_end = datetime.datetime(2025, 1, 1, 0)   # 2020-03-24T07:00:00
+    dt_start = datetime.datetime(2025, 1, 1, 0)
+    dt_end = datetime.datetime(2025, 1, 10, 0)   # 2020-03-24T07:00:00
    
     df = client.get_eia_data(api_path=api_path, facets=facets, start=dt_start, end=dt_end)
     print(df)

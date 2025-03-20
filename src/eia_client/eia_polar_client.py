@@ -60,16 +60,18 @@ class EIAPolarClient:
     
     def __get_endpoint_chunks(self, api_path, facets, start, end) -> list:
         """
-           Splits a time range into chunks and generates API endpoint URLs for each chunk.
+        Splits a time range into chunks and generates API endpoint URLs for each chunk.
         This method divides a specified time range into smaller chunks if the range exceeds
         a predefined limit (2000 hours). It then constructs API endpoint URLs for each chunk
         based on the provided parameters.        
+
         Args:
             api_path (str): The API path to be appended to the base URL.
             facets (dict): A dictionary of facets to filter the API request. Each key represents
                 a facet name, and the value can be a string or a list of strings.
             start (datetime): The start of the time range.
             end (datetime): The end of the time range.
+
         Returns:
             list: A list of strings, where each string is an API endpoint URL for a specific
             time chunk.
@@ -114,9 +116,15 @@ class EIAPolarClient:
             endpoints.append(self.BASE_URL + api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + freq_str)
         
         # Display the number of chunks and the endpoints
-        print(f"\nNumber of chunks: {len(endpoints)}\n\nRequesting in parallel the following endpoints:\n")
-        for endpoint in endpoints:
+        n_chunks = len(endpoints)
+        if n_chunks > 1:
+            print(f"\nNumber of chunks: {n_chunks}\n\nRequesting in parallel the following endpoints:\n")
+            for endpoint in endpoints: 
                 print(endpoint)
+        else:
+            print(f"\nRequesting the following endpoint:\n")
+            print(endpoints[0])
+        
         
         return endpoints
 
