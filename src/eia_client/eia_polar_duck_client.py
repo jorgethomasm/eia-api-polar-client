@@ -1,11 +1,11 @@
 """
 This module contains the EIAPolarDuckClient class, which is used to interact with the EIA API.
-
 By: Jorge Thomas https://github.com/jorgethomasm
 """
 import datetime
 import requests
-from typing import Optional, Union
+from concurrent.futures import ThreadPoolExecutor
+from typing import Optional
 import polars as pl
 import duckdb
 
@@ -14,33 +14,49 @@ class EIAPolarDuckClient:
     BASE_URL = "https://api.eia.gov/v2/"
 
     def __init__(self, api_key):
-        self.api_key = api_key    
+        self.api_key = api_key        
 
-    def __get_data_chunks(self, endpoint: str, params=None) -> pl.DataFrame:
+    def __get_data(self, endpoints_urls: list, params=None) -> pl.DataFrame:
 
         params = params or {}
         params["api_key"] = self.api_key
+        
+        def fetch_data(url):
+            """Fetch data from a single URL."""            
+            response = requests.get(url=url, params=params)
+            response.raise_for_status()            
+            return response.json()  
+     
+        with ThreadPoolExecutor() as executor:
+                list_with_eia_payloads = list(executor.map(fetch_data, endpoints_urls)) 
 
-        # TODO: Make concurrent requests to the API
-        full_url = f"{self.BASE_URL}{endpoint}"
-        print(f"Requesting...\n{full_url}")
-        response = requests.get(url=full_url, params=params)
-        response.raise_for_status()
-        
-        eia_payload = response.json()  #  dictionary
-        
-        # Convert JSON to Polars DataFrame
-        df = pl.DataFrame(eia_payload["response"]["data"])  # data is a list of dicts (rows) within the response dict
-        
+        # Generate a list of DataFrames from the list of dictionaries
+        list_with_dfs = [pl.DataFrame(data["response"]["data"]) for data in list_with_eia_payloads]
+   
+        # Concatenate the list of DataFrames into a single DataFrame
+        df = pl.concat(list_with_dfs)  # Concatenate the list of DataFrames into a single DataFrame
+
         # Check if the DataFrame is empty
         if df.is_empty():
-            raise ValueError("The DataFrame is empty. No data was retrieved from the API.")       
+            raise ValueError("The DataFrame is empty. No data was retrieved from the API.") 
         
         return df
     
     def __get_endpoint_chunks(self, api_path, facets, start, end) -> list:
         """
-        Get the data chunks from the API and return a list of Polars DataFrames.
+           Splits a time range into chunks and generates API endpoint URLs for each chunk.
+        This method divides a specified time range into smaller chunks if the range exceeds
+        a predefined limit (2000 hours). It then constructs API endpoint URLs for each chunk
+        based on the provided parameters.        
+        Args:
+            api_path (str): The API path to be appended to the base URL.
+            facets (dict): A dictionary of facets to filter the API request. Each key represents
+                a facet name, and the value can be a string or a list of strings.
+            start (datetime): The start of the time range.
+            end (datetime): The end of the time range.
+        Returns:
+            list: A list of strings, where each string is an API endpoint URL for a specific
+            time chunk.
         """
         offset = 2000
         frequency = "hourly"  # always hourly  
@@ -85,46 +101,30 @@ class EIAPolarDuckClient:
 
     # ================ Helper methods ================
     
-    def __format_df_columns(self, df: pl.DataFrame, frequency: str) -> pl.DataFrame:
+    def __format_df_columns(self, df: pl.DataFrame) -> pl.DataFrame:
         """
         Format the columns types of the Polars DataFrame.
         """
-        if frequency == "hourly":
-            df = df.with_columns(
-                [
-                    pl.col("value").cast(pl.Float64),
-                    pl.col("period") + ":00"
-                    ]
+        df = df.with_columns(
+            [
+                pl.col("value").cast(pl.Float64),
+                pl.col("period") + ":00"
+                ]
                 )
-            df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))
-        elif frequency == "daily":
-            df = df.with_columns(
-                [
-                    pl.col("value").cast(pl.Float64),
-                    pl.col("period").str.to_date()                    
-                    ]
-                )
-        else:
-            raise ValueError("Frequency must be 'hourly' or 'daily'")
+        # Convert the period column to datetime
+        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))        
         
-        return df    
+        return df.sort("period")  
 
 
     # ================================================  
     # V2 API
-    def get_eia_data(self,
-                     api_path: str,
-                     facets: Optional[dict] = None,
-                     start: datetime.datetime = None,
-                     end: datetime.datetime = None                     
-                     ) -> pl.DataFrame:       
-                
+    def get_eia_data(self, api_path: str, facets: Optional[dict] = None, start: datetime.datetime = None, end: datetime.datetime = None) -> pl.DataFrame:   
         """ 
         Parameters
         frequency: always "hourly".
         offset: number of observations to split requests (chunks). Recommended Max. 2000       
-        """            
-
+        """ 
         # ===== Check input parameters =====
         
         if not isinstance(api_path, str):
@@ -139,15 +139,17 @@ class EIAPolarDuckClient:
         if not isinstance(end, datetime.datetime):
             raise TypeError("end must be a datetime")    
         
+        # Generate the list of endpoints to be requested
         endpoints = self.__get_endpoint_chunks(api_path, facets, start, end)
 
-
+        # Get the data from the API
+        df = self.__get_data(endpoints)
         
         # Format the columns of the DataFrame
-        df = self.__format_df_columns(df, frequency=frequency) 
+        df = self.__format_df_columns(df) 
 
         # Sort the DataFrame by period
-        return df.sort("period")
+        return df
     
     
     def save_df_as_duckdb(self, df: pl.DataFrame, path: str = "./data/raw/eia_data.duckdb", table_name: str = "eia_data") -> None:

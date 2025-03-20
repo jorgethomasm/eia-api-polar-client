@@ -32,6 +32,8 @@ if __name__ == "__main__":
     df = client.get_eia_data(api_path=api_path, facets=facets, start=dt_start, end=dt_end)
     print(df)
 
+    print(df)
+
     # Save the data to a DuckDB file
     # client.save_df_as_duckdb(df, path="./data/raw/eia_SDGE_2024_demo.duckdb", table_name="eia_data")
 
