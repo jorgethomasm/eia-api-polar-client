@@ -34,7 +34,7 @@ class EIAPolarDuckClient:
         list_with_dfs = [pl.DataFrame(data["response"]["data"]) for data in list_with_eia_payloads]
    
         # Concatenate the list of DataFrames into a single DataFrame
-        df = pl.concat(list_with_dfs)  # Concatenate the list of DataFrames into a single DataFrame
+        df = pl.concat(list_with_dfs)
 
         # Check if the DataFrame is empty
         if df.is_empty():
@@ -112,21 +112,23 @@ class EIAPolarDuckClient:
                 ]
                 )
         # Convert the period column to datetime
-        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))        
-        
+        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))  
         return df.sort("period")  
 
 
     # ================================================  
-    # V2 API
-    def get_eia_data(self, api_path: str, facets: Optional[dict] = None, start: datetime.datetime = None, end: datetime.datetime = None) -> pl.DataFrame:   
+    # V2 API By Jorge Thomas
+    def get_eia_data(self, 
+                     api_path: str, 
+                     facets: Optional[dict] = None, 
+                     start: datetime.datetime = None, 
+                     end: datetime.datetime = None) -> pl.DataFrame:   
         """ 
         Parameters
         frequency: always "hourly".
         offset: number of observations to split requests (chunks). Recommended Max. 2000       
         """ 
-        # ===== Check input parameters =====
-        
+        # ===== Check input parameters =====        
         if not isinstance(api_path, str):
             raise TypeError("api_path must be a string")        
         
@@ -137,18 +139,21 @@ class EIAPolarDuckClient:
             raise TypeError("start must be a datetime")
 
         if not isinstance(end, datetime.datetime):
-            raise TypeError("end must be a datetime")    
-        
-        # Generate the list of endpoints to be requested
+            raise TypeError("end must be a datetime")            
+        # ===================================
+
+        # Generate the list of endpoints urls to be requested
         endpoints = self.__get_endpoint_chunks(api_path, facets, start, end)
+        print(f"\nNumber of chunks: {len(endpoints)}\n\nRequesting in parallel the following endpoints:\n")
+        for endpoint in endpoints:
+                print(endpoint)
 
         # Get the data from the API
         df = self.__get_data(endpoints)
         
-        # Format the columns of the DataFrame
+        # Format the columns and sort the DataFrame
         df = self.__format_df_columns(df) 
-
-        # Sort the DataFrame by period
+        
         return df
     
     
