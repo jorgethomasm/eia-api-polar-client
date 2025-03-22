@@ -22,8 +22,8 @@ if __name__ == "__main__":
 
     # Subfilter categories
     facets = {
-        "parent": "CISO",  # California Independent System Operator
-        "subba": "SDGE"  # San Diego Gas & Electric
+        "parent": "CISO"  # California Independent System Operator
+        #"subba": "SDGE"  # San Diego Gas & Electric
     }
     
     dt_start = datetime.datetime(2024, 1, 1, 0)
