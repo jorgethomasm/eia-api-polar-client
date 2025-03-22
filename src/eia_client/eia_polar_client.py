@@ -128,7 +128,6 @@ class EIAPolarClient:
                     
         return probe_endpoint
 
-
     def __generate_endpoint_chunks(self, api_path, facets, start, end, n_timeseries) -> list:
         """
         Splits a time range into chunks and generates API endpoint URLs for each chunk.
@@ -227,12 +226,16 @@ class EIAPolarClient:
                             api_path: str, 
                             facets: Optional[dict] = None, 
                             start: datetime.datetime = None, 
-                            end: datetime.datetime = None) -> pl.DataFrame:   
-        """ 
-        Parameters
-        frequency: always "hourly".
-        offset: number of observations to split requests (chunks). Recommended Max. 2000       
-        """ 
+                            end: datetime.datetime = None) -> pl.DataFrame:
+        """
+        
+        """
+        # """ 
+        # This
+        # Parameters
+        # frequency: always "hourly".
+        # offset: number of observations to split requests (chunks). Recommended Max. 2000       
+        # """ 
         # ===== Check input parameters =====        
         if not isinstance(api_path, str):
             raise TypeError("api_path must be a string")        
@@ -247,17 +250,14 @@ class EIAPolarClient:
             raise TypeError("end must be a datetime")            
         # ===================================
 
-        # Probe data to check how the chunks will be divided
+        # Probe data to check number of time series in the payload
         probe_endpoint = self.__generate_probe_endpoint(api_path, facets, start, end)  
-        n_timeseries = self.__probe_data(endpoint_url=probe_endpoint)
+        n_ts = self.__probe_data(endpoint_url=probe_endpoint)
 
         # Generate the [list] of endpoints urls to be requested
-        endpoints_plus_probe = self.__generate_endpoint_chunks(api_path, facets, start, end, n_timeseries)        
-
+        endpoints = self.__generate_endpoint_chunks(api_path, facets, start, end, n_timeseries=n_ts)  
         
-
         # Get the data from the API
-        endpoints = endpoints_plus_probe[1:]        
         df = self.__get_data_as_df(endpoints)
         
         # Format the columns and sort the DataFrame
