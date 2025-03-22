@@ -228,7 +228,9 @@ class EIAPolarClient:
                             start: datetime.datetime = None, 
                             end: datetime.datetime = None) -> pl.DataFrame:
         """
-        
+        This method first extracts the number of time series to be requested using a probing
+        endpoint with one hour of data. This depends on the selected facest/filters by the user.
+        Then it request chunks in parallel.      
         """
         # """ 
         # This
