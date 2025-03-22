@@ -5,6 +5,7 @@ Date: 2025-03-01
 """
 import datetime
 import requests
+from math import ceil
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 import polars as pl
@@ -12,7 +13,7 @@ import duckdb
 
 
 class EIAPolarClient:
-    """	
+    """	 
     A client to interact with the U.S. Energy Information Administration (EIA) API using Polars DataFrames.
     The client provides methods to fetch data from the EIA API, format the data into Polars DataFrames, and save
     the data to a DuckDB file. Ideal for hourly time series. """
@@ -102,7 +103,33 @@ class EIAPolarClient:
         
         return df
     
-    def __generate_endpoint_chunks(self, api_path, facets, start, end) -> list:
+    def __generate_probe_endpoint(self, api_path, facets, start, end) -> list:
+        """
+        
+        """       
+        frequency = "hourly"  # always hourly  
+        len_str = "" 
+        freq_str = "&frequency=" + frequency
+        # Create string var for facet or extract info from the list
+        facet_str = ""      
+        if facets is not None:
+            # Extract from dictionary
+            for i in facets.keys():
+                if type(facets[i]) is list:
+                    for facet in facets[i]:
+                        # Un-list and concatenate facets strings
+                        facet_str = facet_str + "&facets[" + i + "][]=" + facet
+                elif type(facets[i]) is str:
+                    facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]   
+
+        # Build probe endpoint, i.e. probe url
+        df_end_probe = start + datetime.timedelta(hours=1)
+        probe_endpoint = self.BASE_URL + api_path + "?data[]=value" + facet_str + "&start=" + start.strftime("%Y-%m-%dT%H") + "&end=" + df_end_probe.strftime("%Y-%m-%dT%H") + len_str + freq_str
+                    
+        return probe_endpoint
+
+
+    def __generate_endpoint_chunks(self, api_path, facets, start, end, n_timeseries) -> list:
         """
         Splits a time range into chunks and generates API endpoint URLs for each chunk.
         This method divides a specified time range into smaller chunks if the range exceeds
@@ -120,7 +147,11 @@ class EIAPolarClient:
             list: A list of strings, where each string is an API endpoint URL for a specific
             time chunk. The first element is the probe endpoint URL.
         """
-        chunk_size = 2000
+        chunk_size = ceil(2000 / n_timeseries)     
+    
+        if chunk_size % 2 != 0:  # Check if it's odd
+            chunk_size += 1
+
         frequency = "hourly"  # always hourly  
         len_str = "" 
         freq_str = "&frequency=" + frequency
@@ -151,14 +182,9 @@ class EIAPolarClient:
         else:
             dt_starts.append(df["period"][0])
             dt_ends.append(df["period"][-1])
-
-        # Build probe endpoint, i.e. probe url
-        df_end_probe = dt_starts[0] + datetime.timedelta(hours=1)
-        probe_endpoint = self.BASE_URL + api_path + "?data[]=value" + facet_str + "&start=" + dt_starts[0].strftime("%Y-%m-%dT%H") + "&end=" + df_end_probe.strftime("%Y-%m-%dT%H") + len_str + freq_str
-
-        # Build list of endpoints for each chunk   
-        endpoints = []
-        endpoints.append(probe_endpoint)
+        
+        # Build list of endpoints for each chunk  
+        endpoints = []        
         for i in range(len(dt_starts)):
 
             start_str = "&start=" + dt_starts[i].strftime("%Y-%m-%dT%H")  # Format: # 2024-01-01T01
@@ -167,14 +193,14 @@ class EIAPolarClient:
             endpoints.append(self.BASE_URL + api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + freq_str)
         
         # Display the number of chunks and the endpoints        
-        n_chunks = len(endpoints) - 1  # First endpoint is the probe!
+        n_chunks = len(endpoints)
         if n_chunks > 1:
             print(f"\nNumber of chunks: {n_chunks}\n\nRequesting in parallel the following endpoints:\n")
             for endpoint in endpoints: 
                 print(endpoint)
         else:
             print(f"\nRequesting the following endpoint:\n")
-            print(endpoints[1])  # [0] First endpoint is the probe!
+            print(endpoints[0])
                 
         return endpoints
 
@@ -221,17 +247,17 @@ class EIAPolarClient:
             raise TypeError("end must be a datetime")            
         # ===================================
 
-        # Generate the [list] of endpoints urls to be requested
-        endpoints_plus_probe = self.__generate_endpoint_chunks(api_path, facets, start, end)        
-
         # Probe data to check how the chunks will be divided
-        probe_endpoint = endpoints_plus_probe[0]
-        k = self.__probe_data(endpoint_url=probe_endpoint)
+        probe_endpoint = self.__generate_probe_endpoint(api_path, facets, start, end)  
+        n_timeseries = self.__probe_data(endpoint_url=probe_endpoint)
+
+        # Generate the [list] of endpoints urls to be requested
+        endpoints_plus_probe = self.__generate_endpoint_chunks(api_path, facets, start, end, n_timeseries)        
+
+        
 
         # Get the data from the API
-        endpoints = endpoints_plus_probe[1:]
-
-        # TODO: add parameter to divide the requests in chunks
+        endpoints = endpoints_plus_probe[1:]        
         df = self.__get_data_as_df(endpoints)
         
         # Format the columns and sort the DataFrame
