@@ -26,7 +26,7 @@ if __name__ == "__main__":
         "subba": "SDGE"  # San Diego Gas & Electric
     }
     
-    dt_start = datetime.datetime(2025, 1, 1, 0)
+    dt_start = datetime.datetime(2024, 1, 1, 0)
     dt_end = datetime.datetime(2025, 1, 10, 0)
    
     df = client.get_eia_hourly_data(api_path=api_path, facets=facets, start=dt_start, end=dt_end)

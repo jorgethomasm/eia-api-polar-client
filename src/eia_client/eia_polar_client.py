@@ -20,7 +20,22 @@ class EIAPolarClient:
     BASE_URL = "https://api.eia.gov/v2/"
 
     def __init__(self, api_key):
-        self.api_key = api_key        
+        self.api_key = api_key 
+
+    def __fetch_data(self, url: str, params: dict) -> dict:
+        """
+        Fetch data from a single URL.
+        Args:
+            url (str): The API endpoint URL.
+            params (dict): Query parameters for the API request.
+        Returns:
+            dict: The JSON response from the API.
+        Raises:
+            requests.exceptions.RequestException: If the API request fails.
+        """
+        response = requests.get(url=url, params=params)
+        response.raise_for_status()
+        return response.json()       
 
     def __get_data_as_df(self, endpoints_urls: list, params=None) -> pl.DataFrame:
         """
@@ -39,19 +54,19 @@ class EIAPolarClient:
             requests.exceptions.RequestException: If any of the API requests fail.
             ValueError: If the resulting DataFrame is empty, indicating no data was retrieved.
         """
-
         params = params or {}
         params["api_key"] = self.api_key
         
         # Ad-hoc function to map with ThreadPoolExecutor
-        def fetch_data(url):
-            """Fetch data from a single URL."""            
-            response = requests.get(url=url, params=params)
-            response.raise_for_status()            
-            return response.json()  
+        # def fetch_data(url:str) -> dict:
+        #     """Fetch data from a single URL."""            
+        #     response = requests.get(url=url, params=params)
+        #     response.raise_for_status()            
+        #     return response.json()  
      
         with ThreadPoolExecutor() as executor:
-                list_with_eia_payloads = list(executor.map(fetch_data, endpoints_urls)) 
+                list_with_eia_payloads = list(executor.map(lambda url: self.__fetch_data(url, params), endpoints_urls))
+                # list_with_eia_payloads = list(executor.map(self.__fetch_data, endpoints_urls)) 
 
         # Generate a list of DataFrames from the list of dictionaries
         list_with_dfs = [pl.DataFrame(data["response"]["data"]) for data in list_with_eia_payloads]
@@ -152,7 +167,9 @@ class EIAPolarClient:
 
 
     # ================================================  
-    # V2 API By Jorge Thomas
+    # V2 API By Jorge Thomas (03.2025)
+    # ================================================
+
     def get_eia_hourly_data(self, 
                             api_path: str, 
                             facets: Optional[dict] = None, 
