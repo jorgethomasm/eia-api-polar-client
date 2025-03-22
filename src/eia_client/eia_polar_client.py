@@ -15,14 +15,14 @@ class EIAPolarClient:
     """	
     A client to interact with the U.S. Energy Information Administration (EIA) API using Polars DataFrames.
     The client provides methods to fetch data from the EIA API, format the data into Polars DataFrames, and save
-    the data to a DuckDB file."""
+    the data to a DuckDB file. Ideal for hourly time series. """
 
     BASE_URL = "https://api.eia.gov/v2/"
 
     def __init__(self, api_key):
         self.api_key = api_key        
 
-    def __get_data(self, endpoints_urls: list, params=None) -> pl.DataFrame:
+    def __get_data_as_df(self, endpoints_urls: list, params=None) -> pl.DataFrame:
         """
         Fetches data from multiple API endpoints and returns a concatenated Polars DataFrame.
         This method sends GET requests to the provided list of endpoint URLs using a thread pool
@@ -43,6 +43,7 @@ class EIAPolarClient:
         params = params or {}
         params["api_key"] = self.api_key
         
+        # Ad-hoc function to map with ThreadPoolExecutor
         def fetch_data(url):
             """Fetch data from a single URL."""            
             response = requests.get(url=url, params=params)
@@ -64,7 +65,7 @@ class EIAPolarClient:
         
         return df
     
-    def __get_endpoint_chunks(self, api_path, facets, start, end) -> list:
+    def __generate_endpoint_chunks(self, api_path, facets, start, end) -> list:
         """
         Splits a time range into chunks and generates API endpoint URLs for each chunk.
         This method divides a specified time range into smaller chunks if the range exceeds
@@ -82,7 +83,7 @@ class EIAPolarClient:
             list: A list of strings, where each string is an API endpoint URL for a specific
             time chunk.
         """
-        offset = 2000
+        chunk_size = 2000
         frequency = "hourly"  # always hourly  
         len_str = "" 
         freq_str = "&frequency=" + frequency
@@ -104,9 +105,9 @@ class EIAPolarClient:
             )
         
         dt_starts, dt_ends = [], []
-        if df.height > offset:
+        if df.height > chunk_size:
             # Split requests in chunks in heights of 2000            
-            chunks = [df.slice(i, offset) for i in range(0, len(df), offset)]
+            chunks = [df.slice(i, chunk_size) for i in range(0, len(df), chunk_size)]
             for chunk in chunks:
                 dt_starts.append(chunk["period"][0])
                 dt_ends.append(chunk["period"][-1])     
@@ -152,11 +153,11 @@ class EIAPolarClient:
 
     # ================================================  
     # V2 API By Jorge Thomas
-    def get_eia_data(self, 
-                     api_path: str, 
-                     facets: Optional[dict] = None, 
-                     start: datetime.datetime = None, 
-                     end: datetime.datetime = None) -> pl.DataFrame:   
+    def get_eia_hourly_data(self, 
+                            api_path: str, 
+                            facets: Optional[dict] = None, 
+                            start: datetime.datetime = None, 
+                            end: datetime.datetime = None) -> pl.DataFrame:   
         """ 
         Parameters
         frequency: always "hourly".
@@ -177,10 +178,10 @@ class EIAPolarClient:
         # ===================================
 
         # Generate the list of endpoints urls to be requested
-        endpoints = self.__get_endpoint_chunks(api_path, facets, start, end)        
+        endpoints = self.__generate_endpoint_chunks(api_path, facets, start, end)        
 
         # Get the data from the API
-        df = self.__get_data(endpoints)
+        df = self.__get_data_as_df(endpoints)
         
         # Format the columns and sort the DataFrame
         df = self.__format_df_columns(df) 
