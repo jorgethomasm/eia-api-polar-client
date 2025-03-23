@@ -16,7 +16,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 from eia_client import EIAPolarClient
 ```
 
-Now let's try the power of the new client's parallel request
+# Request Data from the U.S. Energy Information Administration (EIA) 
+
+Now let's try the power of the new client:
 
 ```{python}
 
