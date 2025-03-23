@@ -60,7 +60,7 @@ class EIAPolarClient:
             )
 
         n_timeseries = df_probe.height
-        print(f"\nNumber of time series requested: {n_timeseries}\n")
+        print(f"\nNumber of time series requested: {n_timeseries}")
 
         return n_timeseries
 
@@ -257,16 +257,27 @@ class EIAPolarClient:
         Returns:
             str: Concatenated facets string for URL query."""
 
+        # facet_str = ""
+        # if facets is not None:
+        #     # Extract from dictionary
+        #     for i in facets.keys():
+        #         if type(facets[i]) is list:
+        #             for facet in facets[i]:
+        #                 # Un-list and concatenate facets strings
+        #                 facet_str = facet_str + "&facets[" + i + "][]=" + facet
+        #         elif type(facets[i]) is str:
+        #             facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
+
         facet_str = ""
-        if facets is not None:
+        if facets:
             # Extract from dictionary
-            for i in facets.keys():
-                if type(facets[i]) is list:
-                    for facet in facets[i]:
-                        # Un-list and concatenate facets strings
-                        facet_str = facet_str + "&facets[" + i + "][]=" + facet
-                elif type(facets[i]) is str:
-                    facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
+            for facet_name in facets:
+                if isinstance(facets[facet_name], list):
+                    for facet_value in facets[facet_name]:
+                        facet_str += f"&facets[{facet_name}][]={facet_value}"
+                elif isinstance(facets[facet_name], str):
+                    facet_str += f"&facets[{facet_name}][]={facets[facet_name]}"
+
         return facet_str
 
     # ================================================
