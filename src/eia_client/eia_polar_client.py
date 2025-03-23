@@ -104,24 +104,27 @@ class EIAPolarClient:
         return df
     
     def __generate_probe_endpoint(self, api_path, facets, start, end) -> list:
-        """
-        
-        """       
+        """ 
+        Generates a probe endpoint URL for the API based on the provided parameters.        
+        Args:
+            api_path (str): The API path to be appended to the base URL.
+            facets (dict): A dictionary of facets where keys are facet names and values are either 
+                           strings or lists of strings representing facet values.
+            start (datetime.datetime): The start datetime for the data query.
+            end (datetime.datetime): The end datetime for the data query (not used in the current implementation).
+        Returns:
+            str: The generated probe endpoint URL as a string.
+        Notes:
+            - The frequency is hardcoded to "hourly".
+            - The `end` parameter is not directly used in the function, but the probe endpoint 
+              uses `start` and adds one hour to it to define the end time for the probe.
+        """        
         frequency = "hourly"  # always hourly  
         len_str = "" 
         freq_str = "&frequency=" + frequency
         # Create string var for facet or extract info from the list
-        facet_str = ""      
-        if facets is not None:
-            # Extract from dictionary
-            for i in facets.keys():
-                if type(facets[i]) is list:
-                    for facet in facets[i]:
-                        # Un-list and concatenate facets strings
-                        facet_str = facet_str + "&facets[" + i + "][]=" + facet
-                elif type(facets[i]) is str:
-                    facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]   
-
+        facet_str = self.__concat_facets_string(facets)   
+          
         # Build probe endpoint, i.e. probe url
         df_end_probe = start + datetime.timedelta(hours=1)
         probe_endpoint = self.BASE_URL + api_path + "?data[]=value" + facet_str + "&start=" + start.strftime("%Y-%m-%dT%H") + "&end=" + df_end_probe.strftime("%Y-%m-%dT%H") + len_str + freq_str
@@ -155,18 +158,9 @@ class EIAPolarClient:
         len_str = "" 
         freq_str = "&frequency=" + frequency
         # Create string var for facet or extract info from the list
-        facet_str = ""      
-        if facets is not None:
-            # Extract from dictionary
-            for i in facets.keys():
-                if type(facets[i]) is list:
-                    for facet in facets[i]:
-                        # Un-list and concatenate facets strings
-                        facet_str = facet_str + "&facets[" + i + "][]=" + facet
-                elif type(facets[i]) is str:
-                    facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
-
-            # Initialize DataFrame
+        facet_str = self.__concat_facets_string(facets)    
+        
+        # Initialize DataFrame
         df = pl.DataFrame().with_columns(
             period=pl.datetime_range(start=start, end=end, interval="1h", closed="both", eager=True)
             )
@@ -200,7 +194,7 @@ class EIAPolarClient:
         else:
             print(f"\nRequesting the following endpoint:\n")
             print(endpoints[0])
-                
+        
         return endpoints
 
     def __format_df_columns(self, df: pl.DataFrame) -> pl.DataFrame:
@@ -217,11 +211,24 @@ class EIAPolarClient:
         df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))  
         return df.sort("period")  
 
+    # Helpers
+
+    def __concat_facets_string(facets: Optional[dict]) -> str:
+        facet_str = ""      
+        if facets is not None:
+            # Extract from dictionary
+            for i in facets.keys():
+                if type(facets[i]) is list:
+                    for facet in facets[i]:
+                        # Un-list and concatenate facets strings
+                        facet_str = facet_str + "&facets[" + i + "][]=" + facet
+                elif type(facets[i]) is str:
+                    facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
+        return facet_str        
 
     # ================================================  
-    # V2 API By Jorge Thomas (03.2025)
+    # Public Methods
     # ================================================
-
     def get_eia_hourly_data(self, 
                             api_path: str, 
                             facets: Optional[dict] = None, 
