@@ -40,7 +40,7 @@ class EIAPolarClient:
         response.raise_for_status()
         return response.json()
 
-    def __probe_data(self, endpoint_url=str, params=None) -> int:
+    def __probe_data(self, endpoint_url: str, params=None) -> int:
         """Fetch one hour of data to check how the chunks will be divided.
         Args:
             endpoint_url (str): The API endpoint URL.
@@ -153,12 +153,12 @@ class EIAPolarClient:
         return probe_endpoint
 
     def __generate_endpoint_chunks(
-        self, api_path, facets, start, end, n_timeseries
+        self, api_path, facets, start, end, max_rows_request, n_timeseries
     ) -> list:
         """
         Splits a time range into chunks and generates API endpoint URLs for each chunk.
         This method divides a specified time range into smaller chunks if the range exceeds
-        a predefined limit (2000 hours). It then constructs API endpoint URLs for each chunk
+        a predefined limit max_row_request (~4000 hours = rows). It then constructs API endpoint URLs for each chunk
         based on the provided parameters.
 
         Args:
@@ -172,7 +172,7 @@ class EIAPolarClient:
             list: A list of strings, where each string is an API endpoint URL for a specific
             time chunk. The first element is the probe endpoint URL.
         """
-        chunk_size = ceil(2000 / n_timeseries)
+        chunk_size = ceil(max_rows_request / n_timeseries)
 
         if chunk_size % 2 != 0:  # Check if it's odd
             chunk_size += 1
@@ -192,7 +192,7 @@ class EIAPolarClient:
 
         dt_starts, dt_ends = [], []
         if df.height > chunk_size:
-            # Split requests in chunks in heights of 2000
+            # Split requests in chunks in heights of max_rows_request
             chunks = [df.slice(i, chunk_size) for i in range(0, len(df), chunk_size)]
             for chunk in chunks:
                 dt_starts.append(chunk["period"][0])
@@ -289,18 +289,13 @@ class EIAPolarClient:
         facets: Optional[dict] = None,
         start: datetime.datetime = None,
         end: datetime.datetime = None,
+        max_rows_request: int = 4000,
     ) -> pl.DataFrame:
         """
         This method first extracts the number of time series to be requested using a probing
         endpoint with one hour of data. This depends on the selected facest/filters by the user.
         Then it request chunks in parallel.
         """
-        # """
-        # This
-        # Parameters
-        # frequency: always "hourly".
-        # offset: number of observations to split requests (chunks). Recommended Max. 2000
-        # """
         # ===== Check input parameters =====
         if not isinstance(api_path, str):
             raise TypeError("api_path must be a string")
@@ -321,7 +316,7 @@ class EIAPolarClient:
 
         # Generate the [list] of endpoints urls to be requested
         endpoints = self.__generate_endpoint_chunks(
-            api_path, facets, start, end, n_timeseries=n_ts
+            api_path, facets, start, end, max_rows_request, n_timeseries=n_ts
         )
 
         # Get the data from the API
