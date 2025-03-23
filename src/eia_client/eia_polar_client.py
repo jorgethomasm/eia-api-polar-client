@@ -3,25 +3,27 @@ This module contains the EIAPolarClient class, which is used to interact with th
 By: Jorge Thomas https://github.com/jorgethomasm
 Date: 2025-03-01
 """
+
 import datetime
-import requests
-from math import ceil
 from concurrent.futures import ThreadPoolExecutor
+from math import ceil
 from typing import Optional
-import polars as pl
+
 import duckdb
+import polars as pl
+import requests
 
 
 class EIAPolarClient:
-    """	 
+    """
     A client to interact with the U.S. Energy Information Administration (EIA) API using Polars DataFrames.
     The client provides methods to fetch data from the EIA API, format the data into Polars DataFrames, and save
-    the data to a DuckDB file. Ideal for hourly time series. """
+    the data to a DuckDB file. Ideal for hourly time series."""
 
     BASE_URL = "https://api.eia.gov/v2/"
 
     def __init__(self, api_key):
-        self.api_key = api_key 
+        self.api_key = api_key
 
     def __fetch_data(self, url: str, params: dict) -> dict:
         """
@@ -36,29 +38,31 @@ class EIAPolarClient:
         """
         response = requests.get(url=url, params=params)
         response.raise_for_status()
-        return response.json()       
-    
-    def __probe_data(self, endpoint_url = str, params=None) -> int:
-        """ Fetch one hour of data to check how the chunks will be divided.
+        return response.json()
+
+    def __probe_data(self, endpoint_url=str, params=None) -> int:
+        """Fetch one hour of data to check how the chunks will be divided.
         Args:
             endpoint_url (str): The API endpoint URL.
             params (dict): Query parameters for the API request.
         Returns:
-            int: number of time series available, i.e. divisor for chunk_size."""	        
+            int: number of time series available, i.e. divisor for chunk_size."""
         params = params or {}
-        params["api_key"] = self.api_key        
+        params["api_key"] = self.api_key
         probe_payload = self.__fetch_data(url=endpoint_url, params=params)
 
-        df_probe = pl.DataFrame(probe_payload["response"]["data"])        
-        
+        df_probe = pl.DataFrame(probe_payload["response"]["data"])
+
         # Check if the DataFrame is empty
         if df_probe.is_empty():
-            raise ValueError("The DataFrame is empty. No data was retrieved from the API.")       
-        
+            raise ValueError(
+                "The DataFrame is empty. No data was retrieved from the API."
+            )
+
         n_timeseries = df_probe.height
         print(f"\nNumber of time series requested: {n_timeseries}\n")
 
-        return n_timeseries   
+        return n_timeseries
 
     def __get_data_as_df(self, endpoints_urls: list, params=None) -> pl.DataFrame:
         """
@@ -79,36 +83,42 @@ class EIAPolarClient:
         """
         params = params or {}
         params["api_key"] = self.api_key
-        
+
         # Ad-hoc function to map with ThreadPoolExecutor
         # def fetch_data(url:str) -> dict:
-        #     """Fetch data from a single URL."""            
+        #     """Fetch data from a single URL."""
         #     response = requests.get(url=url, params=params)
-        #     response.raise_for_status()            
-        #     return response.json()  
-     
+        #     response.raise_for_status()
+        #     return response.json()
+
         with ThreadPoolExecutor() as executor:
-                list_with_eia_payloads = list(executor.map(lambda url: self.__fetch_data(url, params), endpoints_urls))
-                # list_with_eia_payloads = list(executor.map(self.__fetch_data, endpoints_urls)) 
+            list_with_eia_payloads = list(
+                executor.map(lambda url: self.__fetch_data(url, params), endpoints_urls)
+            )
+            # list_with_eia_payloads = list(executor.map(self.__fetch_data, endpoints_urls))
 
         # Generate a list of DataFrames from the list of dictionaries
-        list_with_dfs = [pl.DataFrame(data["response"]["data"]) for data in list_with_eia_payloads]
-   
+        list_with_dfs = [
+            pl.DataFrame(data["response"]["data"]) for data in list_with_eia_payloads
+        ]
+
         # Concatenate the list of DataFrames into a single DataFrame
         df = pl.concat(list_with_dfs)
 
         # Check if the DataFrame is empty
         if df.is_empty():
-            raise ValueError("The DataFrame is empty. No data was retrieved from the API.") 
-        
+            raise ValueError(
+                "The DataFrame is empty. No data was retrieved from the API."
+            )
+
         return df
-    
+
     def __generate_probe_endpoint(self, api_path, facets, start, end) -> list:
-        """ 
-        Generates a probe endpoint URL for the API based on the provided parameters.        
+        """
+        Generates a probe endpoint URL for the API based on the provided parameters.
         Args:
             api_path (str): The API path to be appended to the base URL.
-            facets (dict): A dictionary of facets where keys are facet names and values are either 
+            facets (dict): A dictionary of facets where keys are facet names and values are either
                            strings or lists of strings representing facet values.
             start (datetime.datetime): The start datetime for the data query.
             end (datetime.datetime): The end datetime for the data query (not used in the current implementation).
@@ -116,27 +126,40 @@ class EIAPolarClient:
             str: The generated probe endpoint URL as a string.
         Notes:
             - The frequency is hardcoded to "hourly".
-            - The `end` parameter is not directly used in the function, but the probe endpoint 
+            - The `end` parameter is not directly used in the function, but the probe endpoint
               uses `start` and adds one hour to it to define the end time for the probe.
-        """        
-        frequency = "hourly"  # always hourly  
-        len_str = "" 
+        """
+        frequency = "hourly"  # always hourly
+        len_str = ""
         freq_str = "&frequency=" + frequency
         # Create string var for facet or extract info from the list
-        facet_str = self.__concat_facets_string(facets)   
-          
+        facet_str = self.__concat_facets_string(facets=facets)
+
         # Build probe endpoint, i.e. probe url
         df_end_probe = start + datetime.timedelta(hours=1)
-        probe_endpoint = self.BASE_URL + api_path + "?data[]=value" + facet_str + "&start=" + start.strftime("%Y-%m-%dT%H") + "&end=" + df_end_probe.strftime("%Y-%m-%dT%H") + len_str + freq_str
-                    
+        probe_endpoint = (
+            self.BASE_URL
+            + api_path
+            + "?data[]=value"
+            + facet_str
+            + "&start="
+            + start.strftime("%Y-%m-%dT%H")
+            + "&end="
+            + df_end_probe.strftime("%Y-%m-%dT%H")
+            + len_str
+            + freq_str
+        )
+
         return probe_endpoint
 
-    def __generate_endpoint_chunks(self, api_path, facets, start, end, n_timeseries) -> list:
+    def __generate_endpoint_chunks(
+        self, api_path, facets, start, end, n_timeseries
+    ) -> list:
         """
         Splits a time range into chunks and generates API endpoint URLs for each chunk.
         This method divides a specified time range into smaller chunks if the range exceeds
         a predefined limit (2000 hours). It then constructs API endpoint URLs for each chunk
-        based on the provided parameters.        
+        based on the provided parameters.
 
         Args:
             api_path (str): The API path to be appended to the base URL.
@@ -149,52 +172,66 @@ class EIAPolarClient:
             list: A list of strings, where each string is an API endpoint URL for a specific
             time chunk. The first element is the probe endpoint URL.
         """
-        chunk_size = ceil(2000 / n_timeseries)     
-    
+        chunk_size = ceil(2000 / n_timeseries)
+
         if chunk_size % 2 != 0:  # Check if it's odd
             chunk_size += 1
 
-        frequency = "hourly"  # always hourly  
-        len_str = "" 
+        frequency = "hourly"  # always hourly
+        len_str = ""
         freq_str = "&frequency=" + frequency
         # Create string var for facet or extract info from the list
-        facet_str = self.__concat_facets_string(facets)    
-        
+        facet_str = self.__concat_facets_string(facets=facets)
+
         # Initialize DataFrame
         df = pl.DataFrame().with_columns(
-            period=pl.datetime_range(start=start, end=end, interval="1h", closed="both", eager=True)
+            period=pl.datetime_range(
+                start=start, end=end, interval="1h", closed="both", eager=True
             )
-        
+        )
+
         dt_starts, dt_ends = [], []
         if df.height > chunk_size:
-            # Split requests in chunks in heights of 2000            
+            # Split requests in chunks in heights of 2000
             chunks = [df.slice(i, chunk_size) for i in range(0, len(df), chunk_size)]
             for chunk in chunks:
                 dt_starts.append(chunk["period"][0])
-                dt_ends.append(chunk["period"][-1])     
+                dt_ends.append(chunk["period"][-1])
         else:
             dt_starts.append(df["period"][0])
             dt_ends.append(df["period"][-1])
-        
-        # Build list of endpoints for each chunk  
-        endpoints = []        
+
+        # Build list of endpoints for each chunk
+        endpoints = []
         for i in range(len(dt_starts)):
+            start_str = "&start=" + dt_starts[i].strftime(
+                "%Y-%m-%dT%H"
+            )  # Format: # 2024-01-01T01
+            end_str = "&end=" + dt_ends[i].strftime("%Y-%m-%dT%H")
 
-            start_str = "&start=" + dt_starts[i].strftime("%Y-%m-%dT%H")  # Format: # 2024-01-01T01
-            end_str = "&end=" + dt_ends[i].strftime("%Y-%m-%dT%H")   
+            endpoints.append(
+                self.BASE_URL
+                + api_path
+                + "?data[]=value"
+                + facet_str
+                + start_str
+                + end_str
+                + len_str
+                + freq_str
+            )
 
-            endpoints.append(self.BASE_URL + api_path + "?data[]=value" + facet_str + start_str + end_str + len_str + freq_str)
-        
-        # Display the number of chunks and the endpoints        
+        # Display the number of chunks and the endpoints
         n_chunks = len(endpoints)
         if n_chunks > 1:
-            print(f"\nNumber of chunks: {n_chunks}\n\nRequesting in parallel the following endpoints:\n")
-            for endpoint in endpoints: 
+            print(
+                f"\nNumber of chunks: {n_chunks}\n\nRequesting in parallel the following endpoints:\n"
+            )
+            for endpoint in endpoints:
                 print(endpoint)
         else:
-            print(f"\nRequesting the following endpoint:\n")
+            print("\nRequesting the following endpoint:\n")
             print(endpoints[0])
-        
+
         return endpoints
 
     def __format_df_columns(self, df: pl.DataFrame) -> pl.DataFrame:
@@ -202,19 +239,25 @@ class EIAPolarClient:
         Format the columns types of the Polars DataFrame.
         """
         df = df.with_columns(
-            [
-                pl.col("value").cast(pl.Float64),
-                pl.col("period") + ":00"
-                ]
-                )
+            [pl.col("value").cast(pl.Float64), pl.col("period") + ":00"]
+        )
         # Convert the period column to datetime
-        df = df.with_columns(pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone='UTC'))  
-        return df.sort("period")  
+        df = df.with_columns(
+            pl.col("period").str.to_datetime(format="%Y-%m-%dT%H:%M", time_zone="UTC")
+        )
+        return df.sort("period")
 
     # Helpers
 
-    def __concat_facets_string(facets: Optional[dict]) -> str:
-        facet_str = ""      
+    def __concat_facets_string(self, facets: dict = None) -> str:
+        """Concatenates facet parameters into a URL query string.
+        Args:
+            selected_facets (dict): Dictionary of facets where keys are facet names and
+                values are either strings or lists of strings.
+        Returns:
+            str: Concatenated facets string for URL query."""
+
+        facet_str = ""
         if facets is not None:
             # Extract from dictionary
             for i in facets.keys():
@@ -224,63 +267,71 @@ class EIAPolarClient:
                         facet_str = facet_str + "&facets[" + i + "][]=" + facet
                 elif type(facets[i]) is str:
                     facet_str = facet_str + "&facets[" + i + "][]=" + facets[i]
-        return facet_str        
+        return facet_str
 
-    # ================================================  
+    # ================================================
     # Public Methods
     # ================================================
-    def get_eia_hourly_data(self, 
-                            api_path: str, 
-                            facets: Optional[dict] = None, 
-                            start: datetime.datetime = None, 
-                            end: datetime.datetime = None) -> pl.DataFrame:
+    def get_eia_hourly_data(
+        self,
+        api_path: str,
+        facets: Optional[dict] = None,
+        start: datetime.datetime = None,
+        end: datetime.datetime = None,
+    ) -> pl.DataFrame:
         """
         This method first extracts the number of time series to be requested using a probing
         endpoint with one hour of data. This depends on the selected facest/filters by the user.
-        Then it request chunks in parallel.      
+        Then it request chunks in parallel.
         """
-        # """ 
+        # """
         # This
         # Parameters
         # frequency: always "hourly".
-        # offset: number of observations to split requests (chunks). Recommended Max. 2000       
-        # """ 
-        # ===== Check input parameters =====        
+        # offset: number of observations to split requests (chunks). Recommended Max. 2000
+        # """
+        # ===== Check input parameters =====
         if not isinstance(api_path, str):
-            raise TypeError("api_path must be a string")        
-        
+            raise TypeError("api_path must be a string")
+
         if facets is not None and not isinstance(facets, dict):
-            raise TypeError("facets must be a dictionary or None")        
+            raise TypeError("facets must be a dictionary or None")
 
         if not isinstance(start, datetime.datetime):
             raise TypeError("start must be a datetime")
 
         if not isinstance(end, datetime.datetime):
-            raise TypeError("end must be a datetime")            
+            raise TypeError("end must be a datetime")
         # ===================================
 
         # Probe data to check number of time series in the payload
-        probe_endpoint = self.__generate_probe_endpoint(api_path, facets, start, end)  
+        probe_endpoint = self.__generate_probe_endpoint(api_path, facets, start, end)
         n_ts = self.__probe_data(endpoint_url=probe_endpoint)
 
         # Generate the [list] of endpoints urls to be requested
-        endpoints = self.__generate_endpoint_chunks(api_path, facets, start, end, n_timeseries=n_ts)  
-        
+        endpoints = self.__generate_endpoint_chunks(
+            api_path, facets, start, end, n_timeseries=n_ts
+        )
+
         # Get the data from the API
         df = self.__get_data_as_df(endpoints)
-        
-        # Format the columns and sort the DataFrame
-        df = self.__format_df_columns(df) 
 
-        #TODO: Add method to store df metadata in a duckdb (e.g. facets, start, end, etc.)
+        # Format the columns and sort the DataFrame
+        df = self.__format_df_columns(df)
+
+        # TODO: Add method to store df metadata in a duckdb (e.g. facets, start, end, etc.)
         # df.metadata = {"facets": facets, "start": start, "end": end}
-        
-        #self.save_df_as_duckdb(df, path="./data/metadata/eia_metadata.duckdb", table_name="metadata")
+
+        # self.save_df_as_duckdb(df, path="./data/metadata/eia_metadata.duckdb", table_name="metadata")
 
         return df
-    
-    
-    def save_df_as_duckdb(self, df: pl.DataFrame, path: str = "./data/raw/eia_data.duckdb", table_name: str = "eia_data") -> None:
+
+    def save_df_as_duckdb(
+        self,
+        df: pl.DataFrame,
+        path: str = "./data/raw/eia_data.duckdb",
+        table_name: str = "eia_data",
+    ) -> None:
         """
         Save a Polars DataFrame with the requested EIA data to a DuckDB file.
         Ideal for large dynamic (updatable) dataset and quick data analysis.
@@ -289,6 +340,5 @@ class EIAPolarClient:
         con = duckdb.connect(path)
         con.execute(query)
         con.close()
-                
-        return None  
-        
+
+        return None
