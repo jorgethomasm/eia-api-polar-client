@@ -19,7 +19,7 @@ def test_old_client_backfill_hourly():
     # Subfilter categories
     facets = {"parent": "CISO", "subba": "SDGE"}
 
-    dt_start = datetime.datetime(2023, 1, 1, 1)
+    dt_start = datetime.datetime(2020, 1, 1, 1)
     dt_end = datetime.datetime(2025, 1, 1, 1)
 
     df = client.get_eia_data(
@@ -45,4 +45,4 @@ if __name__ == "__main__":
     test_old_client_backfill_hourly()
     end_time = time.time()
 
-    print(f"Elapsed time: {end_time - start_time} seconds")
+    print(f"\nElapsed time: {end_time - start_time} seconds")
