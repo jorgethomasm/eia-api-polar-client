@@ -25,6 +25,14 @@ class EIAPolarClient:
     def __init__(self, api_key):
         self.api_key = api_key
 
+    def __str__(self) -> str:
+        """Return a user-friendly string representation of the client."""
+        return "EIA API Client (using Polars)"
+
+    def __bool__(self) -> bool:
+        """Return True if the client has an API key set."""
+        return bool(self.api_key)
+
     def __fetch_data(self, url: str, params: dict) -> dict:
         """
         Fetch data from a single URL.
