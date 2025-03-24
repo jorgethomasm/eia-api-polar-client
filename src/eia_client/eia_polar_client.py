@@ -33,6 +33,9 @@ class EIAPolarClient:
         """Return True if the client has an API key set."""
         return bool(self.api_key)
 
+    # ================================================
+    # Private Methods
+    # ================================================
     def __fetch_data(self, url: str, params: dict) -> dict:
         """
         Fetch data from a single URL.
@@ -255,7 +258,7 @@ class EIAPolarClient:
         )
         return df.sort("period")
 
-    # Helpers
+    # Helper Method
 
     def __concat_facets_string(self, facets: dict = None) -> str:
         """Concatenates facet parameters into a URL query string.
