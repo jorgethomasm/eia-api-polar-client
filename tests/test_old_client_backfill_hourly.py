@@ -19,8 +19,8 @@ def test_old_client_backfill_hourly():
     # Subfilter categories
     facets = {"parent": "CISO", "subba": "SDGE"}
 
-    dt_start = datetime.datetime(2024, 1, 1, 1)
-    dt_end = datetime.datetime(2025, 1, 31, 23)
+    dt_start = datetime.datetime(2023, 1, 1, 1)
+    dt_end = datetime.datetime(2025, 1, 1, 1)
 
     df = client.get_eia_data(
         api_path=api_path,
@@ -31,7 +31,7 @@ def test_old_client_backfill_hourly():
         offset=4000,
     )
 
-    # print(f"{df.height} observations returned")
+    print(f"{df.height} observations returned")
 
     # Create a simple line plot
     # fig = px.line(df, x='period', y='value', title='EIA Data Visualisation')

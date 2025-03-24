@@ -5,7 +5,7 @@ import time
 
 # import plotly.express as px
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from eia_client import EIAPolarClient  # This is the OLD client!
+from eia_client import EIAPolarClient  # This is the NEW Polar client!
 
 
 def test_new_polar_client_hourly():
@@ -23,7 +23,7 @@ def test_new_polar_client_hourly():
         api_path=api_path, facets=facets, start=dt_start, end=dt_end
     )
 
-    # print(f"{df.height} observations returned")
+    print(f"{df.height} observations returned")
 
     # Create a simple line plot
     # fig = px.line(df, x='period', y='value', title='EIA Data Visualisation')
