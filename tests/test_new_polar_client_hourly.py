@@ -37,4 +37,4 @@ if __name__ == "__main__":
     test_new_polar_client_hourly()
     end_time = time.time
 
-    print("Elapsed time:", end_time - start_time, "seconds")
+    print(f"Elapsed time: {end_time - start_time} seconds")

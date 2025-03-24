@@ -45,4 +45,4 @@ if __name__ == "__main__":
     test_old_client_backfill_hourly()
     end_time = time.time
 
-    print("Elapsed time:", end_time - start_time, "seconds")
+    print(f"Elapsed time: {end_time - start_time} seconds")
